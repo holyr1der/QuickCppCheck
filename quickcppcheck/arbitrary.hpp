@@ -4,6 +4,7 @@
 #include <vector>
 #include <set>
 #include <cstdlib>
+#include <climits>
 
 namespace QuickCppCheck {
 
@@ -17,7 +18,6 @@ struct ArbitraryImpl;
 template<typename T, size_t n = 0>
 struct Arbitrary
 {
-    //typedef T (*FunType)();
     typedef std::function<T()> FunType;
     FunType fun;
 
@@ -40,24 +40,75 @@ struct Arbitrary
 
 namespace Detail {
 
+#define RANDOM_SIGN(X)  ((((rand() % 2)<<1) - 1) * (X))
+
+template<>
+struct ArbitraryImpl<unsigned short> {
+    unsigned short operator()() {
+        return rand() % USHRT_MAX;
+    }
+};
+
+template<>
+struct ArbitraryImpl<short> {
+    short operator()() {
+        return (short)ArbitraryImpl<unsigned short>()();
+    }
+};
+
+template<>
+struct ArbitraryImpl<unsigned int> {
+    unsigned int operator()() {
+        return rand() % UINT_MAX;
+    }
+};
+
 template<>
 struct ArbitraryImpl<int> {
     int operator()() {
-        return rand() % 1000;
+        return (int)ArbitraryImpl<unsigned int>()();
+    }
+};
+
+template<>
+struct ArbitraryImpl<unsigned long> {
+    int operator()() {
+        return rand() % LONG_MAX;
+    }
+};
+
+template<>
+struct ArbitraryImpl<long> {
+    int operator()() {
+        return (long)ArbitraryImpl<unsigned long>()();
+    }
+};
+
+template<>
+struct ArbitraryImpl<float> {
+    float operator()() {
+        return RANDOM_SIGN((float)rand() / RAND_MAX);
     }
 };
 
 template<>
 struct ArbitraryImpl<double> {
     double operator()() {
-        return (double)ArbitraryImpl<int>()() / 1000;
+        return RANDOM_SIGN((double)rand() / RAND_MAX);
+    }
+};
+
+template<>
+struct ArbitraryImpl<unsigned char> {
+    int operator()() {
+        return rand() % 256;
     }
 };
 
 template<>
 struct ArbitraryImpl<char> {
     char operator()() {
-        return rand() % 256;
+        return (char)ArbitraryImpl<unsigned char>()();
     }
 };
 
@@ -67,7 +118,7 @@ struct ArbitraryImpl<std::string> {
         int n = ArbitraryImpl<int>()();
         std::string res;
         for (int i = 0;i < n % 50;++i) {
-            res += ArbitraryImpl<int>()() % 96 + 32;
+            res += rand() % 96 + 32;
         }
         return res;
     }
@@ -78,7 +129,6 @@ struct ArbitraryImpl<std::vector<T>> {
     std::vector<T> operator()() {
         std::vector<T> v;
         int n = ArbitraryImpl<int>()();
-        //v.resize((unsigned) n);
         for (int i = 0;i < n % 20;++i) {
             v.push_back(ArbitraryImpl<T>()());
         }
