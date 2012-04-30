@@ -52,7 +52,7 @@ struct ArbitraryImpl<unsigned short> {
 template<>
 struct ArbitraryImpl<short> {
     short operator()() {
-        return (short)ArbitraryImpl<unsigned short>()();
+        return RANDOM_SIGN(rand() % SHRT_MAX);
     }
 };
 
@@ -66,21 +66,21 @@ struct ArbitraryImpl<unsigned int> {
 template<>
 struct ArbitraryImpl<int> {
     int operator()() {
-        return (int)ArbitraryImpl<unsigned int>()();
+        return RANDOM_SIGN(rand() % INT_MAX);
     }
 };
 
 template<>
 struct ArbitraryImpl<unsigned long> {
-    int operator()() {
-        return rand() % LONG_MAX;
+    unsigned long operator()() {
+        return rand() % ULONG_MAX;
     }
 };
 
 template<>
 struct ArbitraryImpl<long> {
-    int operator()() {
-        return (long)ArbitraryImpl<unsigned long>()();
+    long operator()() {
+        return RANDOM_SIGN(rand() % LONG_MAX);
     }
 };
 
@@ -100,7 +100,7 @@ struct ArbitraryImpl<double> {
 
 template<>
 struct ArbitraryImpl<unsigned char> {
-    int operator()() {
+    unsigned char operator()() {
         return rand() % 256;
     }
 };
@@ -108,7 +108,7 @@ struct ArbitraryImpl<unsigned char> {
 template<>
 struct ArbitraryImpl<char> {
     char operator()() {
-        return (char)ArbitraryImpl<unsigned char>()();
+        return RANDOM_SIGN(rand() % CHAR_MAX);
     }
 };
 
