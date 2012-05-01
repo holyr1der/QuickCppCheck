@@ -10,6 +10,8 @@ namespace QuickCppCheck {
 
     namespace Detail {
 
+static const int MAX_LEN = 50;
+
 template<typename T>
 struct ArbitraryImpl;
 
@@ -29,6 +31,12 @@ struct Arbitrary
 
     T operator()() {
         return fun();
+    }
+
+    template<size_t m>
+    Arbitrary<T> & operator=(Arbitrary<T, m> &a) {
+        this->fun = a.fun;
+        return *this;
     }
 
     template<size_t m>
@@ -115,9 +123,9 @@ struct ArbitraryImpl<char> {
 template<>
 struct ArbitraryImpl<std::string> {
     std::string operator()() {
-        int n = ArbitraryImpl<int>()();
+        int n = ArbitraryImpl<unsigned int>()();
         std::string res;
-        for (int i = 0;i < n % 50;++i) {
+        for (unsigned int i = 0;i < n % 50;++i) {
             res += rand() % 96 + 32;
         }
         return res;
@@ -128,8 +136,8 @@ template<typename T>
 struct ArbitraryImpl<std::vector<T>> {
     std::vector<T> operator()() {
         std::vector<T> v;
-        int n = ArbitraryImpl<int>()();
-        for (int i = 0;i < n % 20;++i) {
+        int n = ArbitraryImpl<unsigned int>()();
+        for (unsigned int i = 0;i < n % MAX_LEN;++i) {
             v.push_back(ArbitraryImpl<T>()());
         }
         return v;
@@ -140,8 +148,8 @@ template<typename T>
 struct ArbitraryImpl<std::set<T>> {
     std::set<T> operator()() {
         std::set<T> s;
-        int n = ArbitraryImpl<int>()();
-        for (int i = 0;i < n % 20;++i) {
+        int n = ArbitraryImpl<unsigned int>()();
+        for (unsigned int i = 0;i < n % MAX_LEN;++i) {
             s.insert(ArbitraryImpl<T>()());
         }
         return s;

@@ -45,8 +45,8 @@ int main()
     Property<int&>([] (int &x) { return 2 * x  / 2 == x; })();
 
     (Property<char, char&>([] (char x, char &y) { return 2 * ((x + 1) / 2) == x; })
-        | Acceptor<char, 0>([] (char &x) { return x < 90 && x > 80;})
-        | Acceptor<char, 1>([] (char &x) { return x > 40 && x < 50;})) ();
+        < Acceptor<char, 0>([] (char &x) { return x < 90 && x > 80;})
+        < Acceptor<char, 1>([] (char &x) { return x > 40 && x < 50;})) ();
 
     (Property<std::string>([] (std::string s) -> bool 
             { std::string tmp = s;
@@ -58,7 +58,7 @@ int main()
               return tmp == s;
             },
             "reverse cancels reverse")
-        | Acceptor<std::string, 0>([] (std::string &s)
+        < Acceptor<std::string, 0>([] (std::string &s)
             { for (size_t i = 0;i < s.size();++i)
                 if (s[i] < 32 || s[i] > 126)
                     return false;
@@ -72,14 +72,18 @@ int main()
 
     (Property<std::vector<int>>([] (std::vector<int> v)
             { return v.size() <= 2 || (v.size() > 0 && (v[0] <= 2000000000 ));},
-            "vector of ints")
-        | Acceptor<std::vector<int>, 0>([] (std::vector<int> &v)
+            "vector of ints",
+            0)
+        < Acceptor<std::vector<int>, 0>([] (std::vector<int> &v)
             { return v.size() < 31; }))
         (300000);
 
     (Property<int, int, int, int>(sum)
+        <  Acceptor<int, 0>([] (int &x) { return x >= 666;})
+        <  Acceptor<int, 1>([] (int &x) { return x >= 666;})
+        <  Acceptor<int, 2>([] (int &x) { return x >= 666;})
         <= Arbitrary<int, 0>(MyArbitrary())
-        |  Acceptor<int, 0>([] (int &x) { return x >= 666;})
+        <= Arbitrary<int, 1>(MyArbitrary())
         )
         (10000);
 
@@ -99,9 +103,10 @@ int main()
         <= Arbitrary<int, 1>([]() {return rand() % 500;})
         <= Arbitrary<int, 2>([]() {return rand() % 500;})
         //d must be always 1000
-        <= Arbitrary<int, 3>([]() {return 1000;}))
+        <= Arbitrary<int, 3>([]() {return 1000;})
         //run 1000000 times and hopefully will hit the solution
-        (1000000);
+    )
+        (10000000);
 
     return 0;
 }

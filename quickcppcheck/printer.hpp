@@ -2,6 +2,7 @@
 #define _QCPPC_PRINTER_H
 
 #include <tuple>
+#include <sstream>
 
 namespace QuickCppCheck {
     namespace Detail {
@@ -32,6 +33,30 @@ struct tuple_printer {
     }
 };
 
+enum ColorCode {
+    RED_COLOR = 1,
+    GREEN_COLOR =2,
+    YELLOW_COLOR = 3,
+};
+
+struct ColoredString {
+    std::string pre;
+    std::string suf;
+
+    ColoredString(ColorCode cc) {
+        std::stringstream ss;
+        ss<<"\033[0;3"<<cc<<"m";
+        pre = ss.str();
+        suf = "\033[m";
+    }
+    std::string operator()(std::string &&in) {
+        return pre + in + suf;
+    }
+    std::string operator()(std::string &in) {
+        return pre + in + suf;
+    }
+};
+
 } // namespace Detail
 
 template<typename... Types>
@@ -43,6 +68,10 @@ void print_tuple(std::tuple<Types...> &tup,
     Detail::tuple_printer_impl<sizeof...(Types)>()(Detail::tuple_printer(out, delimiter), tup);
     out<<"]"<<std::endl;
 }
+
+Detail::ColoredString RED = Detail::ColoredString(Detail::RED_COLOR);
+Detail::ColoredString GREEN = Detail::ColoredString(Detail::GREEN_COLOR);
+Detail::ColoredString YELLOW = Detail::ColoredString(Detail::YELLOW_COLOR);
 
 } // namespace QuickCppCheck
 

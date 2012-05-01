@@ -65,15 +65,14 @@ public:
         bool ok = true;
 
         if (verbose) {
-            std::cout<<std::endl<<"[----start test----]"<<std::endl;
-        } else {
-            std::cout<<std::endl;
+            std::cout<<std::endl<<"[--------start test--------]";
         }
-        std::cout<<"Property: "<<name<<std::endl;
+        std::cout<<std::endl;
+        std::cout<<"Property: "<<YELLOW(name)<<std::endl;
 
         for (unsigned long long i = 1;i <= n;++i) {
             if (!Detail::apply_func<sizeof...(Args)>::apply(fun, arbs, accs, data)) {
-                std::cout<<"Falsifiable after "<<i<<" tests."<<std::endl;
+                std::cout<<RED("Failed.")<<" Falsifiable after "<<i<<" tests."<<std::endl;
                 if (verbose) {
                     std::cout<<i<<": ";
                 }
@@ -88,10 +87,10 @@ public:
         }
 
         if (ok) {
-            std::cout<<"OK. Passed "<<n<<" tests."<<std::endl;
+            std::cout<<GREEN("OK.")<<" Passed "<<n<<" tests."<<std::endl;
         }
         if (verbose) {
-            std::cout<<"[----end test------]"<<std::endl<<std::endl;
+            std::cout<<"[--------end test------]"<<std::endl;
         }
     }
 
@@ -102,7 +101,7 @@ public:
     }
 
     template<typename T, size_t I>
-    Property<Args...> & operator|(Acceptor<T, I> &&a)
+    Property<Args...> & operator<(Acceptor<T, I> &&a)
     {
         std::get<I>(accs) = a;
         return *this;
@@ -111,7 +110,7 @@ public:
     template<typename T, size_t I>
     Property<Args...> & operator<=(Arbitrary<T, I> &&a)
     {
-        std::get<I>(arbs) = std::move(a);
+        std::get<I>(arbs) = a;
         return *this;
     }
 };

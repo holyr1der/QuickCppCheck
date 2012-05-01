@@ -32,6 +32,13 @@ struct Acceptor
         return *this;
     }
 
+    template<size_t m>
+    Acceptor<T>& operator=(Acceptor<T, m> &&acc)
+    {
+        this->fun = acc.fun;
+        return *this;
+    }
+
     bool operator()(T &t)
     {
         return fun(t);
