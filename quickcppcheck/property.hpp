@@ -55,7 +55,7 @@ private:
     std::string name;
     int verbose;
 
-    static const int MAX_ITER = 1000000000; //one billion
+    static const int MAX_TESTS = 1000000000; //one billion
 
 public:
     Property(FunType &&fun, std::string &&name = std::string("<unnamed>"), int verbose = 0):
@@ -72,7 +72,7 @@ public:
         std::cout<<std::endl;
         std::cout<<"Property: "<<YELLOW(name)<<std::endl;
 
-        unsigned int N = n < 0 ? MAX_ITER : n;
+        unsigned int N = n < 0 ? MAX_TESTS : n;
 
         for (unsigned int i = 1;i <= N;++i) {
             if (!Detail::apply_func<sizeof...(Args)>::apply(fun, arbs, accs, data)) {
