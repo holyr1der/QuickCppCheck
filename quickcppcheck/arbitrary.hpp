@@ -123,7 +123,7 @@ struct ArbitraryImpl<char> {
 template<>
 struct ArbitraryImpl<std::string> {
     std::string operator()() {
-        int n = ArbitraryImpl<unsigned int>()();
+        unsigned int n = ArbitraryImpl<unsigned int>()();
         std::string res;
         for (unsigned int i = 0;i < n % 50;++i) {
             res += rand() % 96 + 32;
@@ -136,7 +136,7 @@ template<typename T>
 struct ArbitraryImpl<std::vector<T>> {
     std::vector<T> operator()() {
         std::vector<T> v;
-        int n = ArbitraryImpl<unsigned int>()();
+        unsigned int n = ArbitraryImpl<unsigned int>()();
         for (unsigned int i = 0;i < n % MAX_LEN;++i) {
             v.push_back(ArbitraryImpl<T>()());
         }
@@ -148,7 +148,7 @@ template<typename T>
 struct ArbitraryImpl<std::set<T>> {
     std::set<T> operator()() {
         std::set<T> s;
-        int n = ArbitraryImpl<unsigned int>()();
+        unsigned int n = ArbitraryImpl<unsigned int>()();
         for (unsigned int i = 0;i < n % MAX_LEN;++i) {
             s.insert(ArbitraryImpl<T>()());
         }

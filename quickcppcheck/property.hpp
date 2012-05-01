@@ -55,12 +55,14 @@ private:
     std::string name;
     int verbose;
 
+    static const int MAX_ITER = 1000000000; //one billion
+
 public:
     Property(FunType &&fun, std::string &&name = std::string("<unnamed>"), int verbose = 0):
         fun(fun), name(name), verbose(verbose)
     {}
 
-    void check(long long n)
+    void check(int n)
     {
         bool ok = true;
 
@@ -70,7 +72,9 @@ public:
         std::cout<<std::endl;
         std::cout<<"Property: "<<YELLOW(name)<<std::endl;
 
-        for (unsigned long long i = 1;i <= n;++i) {
+        unsigned int N = n < 0 ? MAX_ITER : n;
+
+        for (unsigned int i = 1;i <= N;++i) {
             if (!Detail::apply_func<sizeof...(Args)>::apply(fun, arbs, accs, data)) {
                 std::cout<<RED("Failed.")<<" Falsifiable after "<<i<<" tests."<<std::endl;
                 if (verbose) {
@@ -87,7 +91,7 @@ public:
         }
 
         if (ok) {
-            std::cout<<GREEN("OK.")<<" Passed "<<n<<" tests."<<std::endl;
+            std::cout<<GREEN("OK.")<<" Passed "<<N<<" tests."<<std::endl;
         }
         if (verbose) {
             std::cout<<"[--------end test------]"<<std::endl;
@@ -95,7 +99,7 @@ public:
     }
 
 
-    void operator()(long long n = 100)
+    void operator()(int n = 100)
     {
         check(n);
     }

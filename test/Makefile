@@ -1,4 +1,4 @@
-CXXFLAGS += -std=c++0x -Wall -O3 -Wno-sign-compare -Wno-parentheses
+CXXFLAGS += -std=c++0x -Wall -O3
 
 test: test.cpp
 	$(CXX) $(CXXFLAGS) test.cpp -o test.out

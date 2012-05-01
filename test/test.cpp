@@ -103,10 +103,9 @@ int main()
         <= Arbitrary<int, 1>([]() {return rand() % 500;})
         <= Arbitrary<int, 2>([]() {return rand() % 500;})
         //d must be always 1000
-        <= Arbitrary<int, 3>([]() {return 1000;})
-        //run 1000000 times and hopefully will hit the solution
-    )
-        (10000000);
+        <= Arbitrary<int, 3>([]() {return 1000;}))
+        //run and hopefully will hit the solution
+        (-1);
 
     return 0;
 }
