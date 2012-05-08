@@ -4,7 +4,6 @@
 #include <iostream>
 #include <functional>
 #include <tuple>
-#include <algorithm>
 
 #include "arbitrary.hpp"
 #include "acceptor.hpp"
@@ -16,9 +15,11 @@ namespace QuickCppCheck {
 template<std::size_t N>
 struct apply_func {
     template<typename F, typename... Types, typename... Args>
-    static bool apply(F f, std::tuple<Arbitrary<Types>...> arbs,
-                    std::tuple<Acceptor<Types>...> accs, 
-                    std::tuple<Types...> & t, Args& ... args)
+    static bool apply(F & f, 
+                    std::tuple<Arbitrary<Types>...> & arbs,
+                    std::tuple<Acceptor<Types>...> & accs, 
+                    std::tuple<Types...> & t, 
+                    Args & ... args)
     {
         do {
             std::get<N-1>(t) = std::get<N-1>(arbs)();
@@ -31,9 +32,11 @@ struct apply_func {
 template<>
 struct apply_func<0> {
     template<typename F, typename... Types, typename... Args>
-    static bool apply(F f, std::tuple<Arbitrary<Types>...> arbs,
-                    std::tuple<Acceptor<Types>...> accs,
-                    std::tuple<Types...> & t, Args&... args)
+    static bool apply(F & f, 
+                    std::tuple<Arbitrary<Types>...> & arbs,
+                    std::tuple<Acceptor<Types>...> & accs,
+                    std::tuple<Types...> & t, 
+                    Args & ... args)
     {
         return f(args...);
     }
@@ -55,14 +58,21 @@ private:
     std::string name;
     int verbose;
 
-    static const int MAX_TESTS = 1000000000; //one billion
+    static const int MAX_TESTS = 1000000000; //that's one billion
+
+    static bool initialized;
 
 public:
-    Property(FunType &&fun, std::string &&name = std::string("<unnamed>"), int verbose = 0):
+    Property(FunType && fun, std::string && name = std::string("<unnamed>"), int verbose = 0):
         fun(fun), name(name), verbose(verbose)
-    {}
+    {
+        if (!Property::initialized) {
+            Detail::engine.seed(time(NULL));
+            Property::initialized = true;
+        }
+    }
 
-    void check(int n)
+    void operator()(int n = 1000)
     {
         bool ok = true;
 
@@ -98,26 +108,23 @@ public:
         }
     }
 
-
-    void operator()(int n = 100)
-    {
-        check(n);
-    }
-
     template<typename T, size_t I>
-    Property<Args...> & operator<(Acceptor<T, I> &&a)
+    Property<Args...> & operator<(Acceptor<T, I> && a)
     {
         std::get<I>(accs) = a;
         return *this;
     }
 
     template<typename T, size_t I>
-    Property<Args...> & operator<=(Arbitrary<T, I> &&a)
+    Property<Args...> & operator<=(Arbitrary<T, I> && a)
     {
         std::get<I>(arbs) = a;
         return *this;
     }
 };
+
+template<typename... Args>
+bool Property<Args...>::initialized = false;
 
 } // namespace QuickCppCheck
 
