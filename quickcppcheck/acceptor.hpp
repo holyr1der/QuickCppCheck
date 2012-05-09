@@ -26,14 +26,7 @@ struct Acceptor
     Acceptor(FunType &&fun /*= ([](T &t) {return true;})*/):fun(fun){};
 
     template<size_t m>
-    Acceptor<T>& operator=(Acceptor<T, m> &acc)
-    {
-        this->fun = acc.fun;
-        return *this;
-    }
-
-    template<size_t m>
-    Acceptor<T>& operator=(Acceptor<T, m> &&acc)
+    Acceptor<T>& operator=(const Acceptor<T, m> &acc)
     {
         this->fun = acc.fun;
         return *this;

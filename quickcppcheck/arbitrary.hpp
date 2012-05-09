@@ -40,13 +40,7 @@ struct Arbitrary
     }
 
     template<size_t m>
-    Arbitrary<T> & operator=(Arbitrary<T, m> &a) {
-        this->fun = a.fun;
-        return *this;
-    }
-
-    template<size_t m>
-    Arbitrary<T> & operator=(Arbitrary<T, m> &&a) {
+    Arbitrary<T> & operator=(const Arbitrary<T, m> &a) {
         this->fun = a.fun;
         return *this;
     }
