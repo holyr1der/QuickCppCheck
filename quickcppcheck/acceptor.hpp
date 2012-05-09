@@ -21,16 +21,9 @@ struct Acceptor
     FunType fun;
     Acceptor()
     {
-        fun = Detail::id<T>();    //([] (T & t) { return true;});
+        fun = Detail::id<T>();
     }
-    Acceptor(FunType &&fun /*= ([](T &t) {return true;})*/):fun(fun){};
-
-    template<size_t m>
-    Acceptor<T>& operator=(const Acceptor<T, m> &acc)
-    {
-        this->fun = acc.fun;
-        return *this;
-    }
+    Acceptor(FunType &&fun):fun(fun){};
 
     bool operator()(T &t)
     {

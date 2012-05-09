@@ -44,6 +44,7 @@ struct Arbitrary
         this->fun = a.fun;
         return *this;
     }
+
 };
 
 namespace Detail {
