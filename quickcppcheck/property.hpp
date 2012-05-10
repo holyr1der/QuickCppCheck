@@ -44,6 +44,10 @@ struct apply_func<0> {
 
 } //namespace Detail
 
+static Detail::ColoredString RED = Detail::ColoredString(Detail::RED_COLOR);
+static Detail::ColoredString GREEN = Detail::ColoredString(Detail::GREEN_COLOR);
+static Detail::ColoredString YELLOW = Detail::ColoredString(Detail::YELLOW_COLOR);
+
 template<typename... Args>
 class Property
 {
@@ -65,12 +69,7 @@ private:
 public:
     Property(FunType && fun, std::string && name = std::string("<unnamed>"), int verbose = 0):
         fun(fun), name(name), verbose(verbose)
-    {
-        if (!Property::initialized) {
-            Detail::engine.seed(time(NULL));
-            Property::initialized = true;
-        }
-    }
+    {}
 
     void operator()(int n = 1000)
     {
@@ -122,9 +121,6 @@ public:
         return *this;
     }
 };
-
-template<typename... Args>
-bool Property<Args...>::initialized = false;
 
 } // namespace QuickCppCheck
 

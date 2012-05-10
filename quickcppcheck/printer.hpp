@@ -69,10 +69,6 @@ void print_tuple(std::tuple<Types...> &tup,
     out<<"]"<<std::endl;
 }
 
-Detail::ColoredString RED = Detail::ColoredString(Detail::RED_COLOR);
-Detail::ColoredString GREEN = Detail::ColoredString(Detail::GREEN_COLOR);
-Detail::ColoredString YELLOW = Detail::ColoredString(Detail::YELLOW_COLOR);
-
 } // namespace QuickCppCheck
 
 #endif // _QCPPC_PRINTER_H

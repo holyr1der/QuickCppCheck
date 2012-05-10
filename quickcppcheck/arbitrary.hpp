@@ -12,8 +12,6 @@ namespace QuickCppCheck {
 
 static const int MAX_LEN = 50;
 
-std::mt19937 engine;
-
 template<typename T>
 struct ArbitraryImpl;
 
@@ -55,14 +53,23 @@ enum STATE {
     RAND,
 };
 
+struct ArbitraryImplBase {
+    std::mt19937 engine;
+
+    ArbitraryImplBase() {
+        std::random_device rd;
+        engine.seed(rd());
+    }
+};
+
 template<typename IntType>
-struct ArbitraryIntBase {
+struct ArbitraryIntBase : ArbitraryImplBase {
     STATE state;
     std::uniform_int_distribution<IntType> dist;
 
     ArbitraryIntBase(IntType low = std::numeric_limits<IntType>::min(),
                      IntType high = std::numeric_limits<IntType>::max()):
-        state(LOW), dist(low, high) {
+        ArbitraryImplBase(), state(LOW), dist(low, high) {
         assert(low <= high);
     }
     IntType operator()() {
@@ -130,12 +137,12 @@ struct ArbitraryImpl<long> : ArbitraryIntBase<long>{
 };
 
 template<typename RealType>
-struct ArbitraryRealBase {
+struct ArbitraryRealBase : ArbitraryImplBase {
     STATE state;
     std::uniform_real_distribution<RealType> dist;
 
     ArbitraryRealBase(RealType low = -1.0, RealType high = 1.0):
-        state(LOW), dist(low, high) {
+        ArbitraryImplBase(), state(LOW), dist(low, high) {
             assert(low <= high);
         }
     RealType operator()() {
@@ -166,11 +173,12 @@ struct ArbitraryImpl<double> : ArbitraryRealBase<double>{
 };
 
 template<>
-struct ArbitraryImpl<std::string> {
+struct ArbitraryImpl<std::string> : ArbitraryImplBase {
     std::uniform_int_distribution<int> length; 
     std::uniform_int_distribution<int> chars; 
 
-    ArbitraryImpl(int low = 0, int high = MAX_LEN):length(low, high), chars(32, 126) {}
+    ArbitraryImpl(int low = 0, int high = MAX_LEN):
+        ArbitraryImplBase(), length(low, high), chars(32, 126) {}
 
     std::string operator()() {
         unsigned int n = length(engine);
@@ -183,11 +191,12 @@ struct ArbitraryImpl<std::string> {
 };
 
 template<typename T>
-struct ArbitraryImpl<std::vector<T>> {
+struct ArbitraryImpl<std::vector<T>> : ArbitraryImplBase {
     std::uniform_int_distribution<int> length; 
     Arbitrary<T> arb; 
 
-    ArbitraryImpl(int low = 0, int high = MAX_LEN):length(low, high) {}
+    ArbitraryImpl(int low = 0, int high = MAX_LEN):
+        ArbitraryImplBase(), length(low, high) {}
 
     std::vector<T> operator()() {
         std::vector<T> v;
