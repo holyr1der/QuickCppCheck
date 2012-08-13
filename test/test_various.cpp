@@ -35,6 +35,9 @@ void test_various()
 {
     Property<int>([] (int x) { return 2 * x  / 2 == x; })();
 
+    Property<int>([] (int x) { return x / 2  * 2 == x; },
+            "This one should fail on odd numbers!!")();
+
     (Property<std::string&>([] (std::string &s) -> bool
             { std::string tmp = s;
               std::reverse(s.begin(), s.end());
@@ -51,7 +54,7 @@ void test_various()
 
     (Property<std::vector<int>>([] (std::vector<int> v)
             { return v.size() <= 2 || (v.size() > 0 && (v[0] <= 2000000000 ));},
-            "vector of ints",
+            "Testing vector of ints, this should randomly fail.",
             0)
         < Acceptor<std::vector<int>, 0>([] (const std::vector<int> &v)
             { return v.size() < 31; }))
@@ -59,7 +62,7 @@ void test_various()
 
     (Property<std::vector<std::string>>([] (std::vector<std::string> v)
             { return v.size() <= 2 || (v.size() > 0 && (v[0]  != "a"));},
-            "vector of strings",
+            "Testing vector of strings, this should randomly fail.",
             0)
         < Acceptor<std::vector<std::string>, 0>([] (const std::vector<std::string> &v)
             { return v.size() < 31; })

@@ -5,6 +5,7 @@
 #include <random>
 #include <limits>
 #include <cassert>
+#include <type_traits>
 
 namespace QuickCppCheck {
 
@@ -12,7 +13,7 @@ namespace QuickCppCheck {
 
 static const int MAX_LEN = 50;
 
-template<typename T>
+template<typename T, typename Enable = void>
 struct ArbitraryImpl;
 
 } // namespace Detail
@@ -63,12 +64,12 @@ struct ArbitraryImplBase {
 };
 
 template<typename IntType>
-struct ArbitraryIntBase : ArbitraryImplBase {
+struct ArbitraryImpl<IntType, typename std::enable_if<std::is_integral<IntType>::value>::type> : ArbitraryImplBase {
     STATE state;
     std::uniform_int_distribution<IntType> dist;
 
-    ArbitraryIntBase(IntType low = std::numeric_limits<IntType>::min(),
-                     IntType high = std::numeric_limits<IntType>::max()):
+    ArbitraryImpl(IntType low = std::numeric_limits<IntType>::min(),
+                  IntType high = std::numeric_limits<IntType>::max()):
         ArbitraryImplBase(), state(LOW), dist(low, high) {
         assert(low <= high);
     }
@@ -87,61 +88,12 @@ struct ArbitraryIntBase : ArbitraryImplBase {
     }
 };
 
-
-template<>
-struct ArbitraryImpl<unsigned char> : ArbitraryIntBase<unsigned char>{
-    template<typename...Args>
-    ArbitraryImpl(const Args&...args): ArbitraryIntBase<unsigned char>(args...) {}
-};
-
-template<>
-struct ArbitraryImpl<char> : ArbitraryIntBase<char>{
-    template<typename...Args>
-    ArbitraryImpl(const Args&...args): ArbitraryIntBase<char>(args...) {}
-};
-
-template<>
-struct ArbitraryImpl<unsigned short> : ArbitraryIntBase<unsigned short> {
-    template<typename...Args>
-    ArbitraryImpl(const Args&...args): ArbitraryIntBase<unsigned short>(args...) {}
-};
-
-template<>
-struct ArbitraryImpl<short> : ArbitraryIntBase<short>{
-    template<typename...Args>
-    ArbitraryImpl(const Args&...args): ArbitraryIntBase<short>(args...) {}
-};
-
-template<>
-struct ArbitraryImpl<unsigned int> : ArbitraryIntBase<unsigned int>{
-    template<typename...Args>
-    ArbitraryImpl(const Args&...args): ArbitraryIntBase<unsigned int>(args...) {}
-};
-
-template<>
-struct ArbitraryImpl<int> : ArbitraryIntBase<int>{
-    template<typename...Args>
-    ArbitraryImpl(const Args&...args): ArbitraryIntBase<int>(args...) {}
-};
-
-template<>
-struct ArbitraryImpl<unsigned long> : ArbitraryIntBase<unsigned long>{
-    template<typename...Args>
-    ArbitraryImpl(const Args&...args): ArbitraryIntBase<unsigned long>(args...) {}
-};
-
-template<>
-struct ArbitraryImpl<long> : ArbitraryIntBase<long>{
-    template<typename...Args>
-    ArbitraryImpl(const Args&...args): ArbitraryIntBase<long>(args...) {}
-};
-
 template<typename RealType>
-struct ArbitraryRealBase : ArbitraryImplBase {
+struct ArbitraryImpl<RealType, typename std::enable_if<std::is_floating_point<RealType>::value>::type> : ArbitraryImplBase {
     STATE state;
     std::uniform_real_distribution<RealType> dist;
 
-    ArbitraryRealBase(RealType low = -1.0, RealType high = 1.0):
+    ArbitraryImpl(RealType low = -1.0, RealType high = 1.0):
         ArbitraryImplBase(), state(LOW), dist(low, high) {
             assert(low <= high);
         }
@@ -158,18 +110,6 @@ struct ArbitraryRealBase : ArbitraryImplBase {
                 return dist(engine);
         }
     }
-};
-
-template<>
-struct ArbitraryImpl<float> : ArbitraryRealBase<float>{
-    template<typename...Args>
-    ArbitraryImpl(const Args&...args):ArbitraryRealBase<float>(args...){}
-};
-
-template<>
-struct ArbitraryImpl<double> : ArbitraryRealBase<double>{
-    template<typename...Args>
-    ArbitraryImpl(const Args&...args):ArbitraryRealBase<double>(args...){}
 };
 
 template<>
