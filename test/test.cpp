@@ -71,6 +71,14 @@ void test_arbit_bounded()
         <= Arbitrary<unsigned int>(0, 1000))
     (_10M);
 
+    (Property<short>([] (short n) 
+                     { return n <= std::numeric_limits<short>::max() &&
+                              n >= std::numeric_limits<short>::min();
+                     },
+        "Arbitrary<short> should be in the expected range of shorts.",
+        0))
+    (_10M);
+
     (Property<int>(prop_mean<int>( _10M, 0, 2, true),
         "Mean value of Arbitrary<int>(-1000, 1000) should be close enough to 0",
         0)

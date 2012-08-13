@@ -18,6 +18,17 @@ struct ArbitraryImpl;
 
 } // namespace Detail
 
+template<typename T, size_t n = 0>
+struct Fixed
+{
+    typedef std::function<T()> FunType;
+    FunType fun;
+
+    Fixed(const T & v){
+        fun = [v] () -> T { return v; } ;
+    }
+};
+
 template<typename T, size_t n = 0, typename B = long>
 struct Arbitrary
 {
@@ -39,7 +50,13 @@ struct Arbitrary
     }
 
     template<size_t m, typename X>
-    Arbitrary<T> & operator=(const Arbitrary<T, m, X> &a) {
+    Arbitrary<T> & operator=(const Arbitrary<T, m, X> & a) {
+        this->fun = a.fun;
+        return *this;
+    }
+
+    template<size_t m>
+    Arbitrary<T> & operator=(const Fixed<T, m> & a) {
         this->fun = a.fun;
         return *this;
     }

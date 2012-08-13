@@ -87,7 +87,7 @@ void test_various()
         <= Arbitrary<int, 1>(1, 500)
         <= Arbitrary<int, 2>(1, 500)
         //d must be always 1000
-        <= Arbitrary<int, 3>([]() {return 1000;}))
+        <= Fixed<int, 3>(1000))
         //run and hopefully will hit the solution
         (100000000);
 }

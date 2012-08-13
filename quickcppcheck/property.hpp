@@ -120,6 +120,13 @@ public:
         std::get<I>(arbs) = a;
         return *this;
     }
+
+    template<typename T, size_t I>
+    Property<Args...> & operator<=(const Fixed<T, I> & a)
+    {
+        std::get<I>(arbs) = a;
+        return *this;
+    }
 };
 
 } // namespace QuickCppCheck
