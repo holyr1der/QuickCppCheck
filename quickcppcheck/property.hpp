@@ -108,14 +108,14 @@ public:
     }
 
     template<typename T, size_t I>
-    Property<Args...> & operator<(Acceptor<T, I> && a)
+    Property<Args...> & operator<(const Acceptor<T, I> & a)
     {
         std::get<I>(accs) = a;
         return *this;
     }
 
-    template<typename T, size_t I>
-    Property<Args...> & operator<=(Arbitrary<T, I> && a)
+    template<typename T, size_t I, typename B = long>
+    Property<Args...> & operator<=(const Arbitrary<T, I, B> & a)
     {
         std::get<I>(arbs) = a;
         return *this;

@@ -23,7 +23,7 @@ struct Acceptor
     {
         fun = Detail::id<T>();
     }
-    Acceptor(FunType &&fun):fun(fun){};
+    Acceptor(const FunType &fun):fun(fun){};
 
     bool operator()(T &t)
     {

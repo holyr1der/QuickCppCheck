@@ -1,6 +1,5 @@
 #include <iostream>
 
-
 #include "../quickcppcheck/property.hpp"
 
 #define _1M   1000000
@@ -42,11 +41,12 @@ void test_arbit()
     )
     (_10M);
 
+    /* 
     (Property<long>(prop_mean<long>( _10M, 0, 10000, true),
             "Mean value of Arbitrary<long> should be close to 0")
         )
     (_10M);
-
+    */
     Property<short>(prop_mean<short>( _10M, 0, 100, true),
             "Mean value of Arbitrary<short> should be close to 0")
     (_10M);
@@ -111,6 +111,11 @@ void test_arbit_bounded()
         "Mean value of Arbitrary<float>() whith x < 0.5 should be close to -0.25")
         < Acceptor<float>(std::bind2nd(std::less<float>(), 0.5))
         <=Arbitrary<float>())
+     (_10M);
+
+    (Property<float>(prop_mean<float>(_10M, 3.7, 0.01, true),
+        "Mean value of Arbitrary<float>(2.8, 4.6) should be close to 3.7")
+        <= Arbitrary<float, 0, float>(2.8, 4.6))
      (_10M);
 }
 

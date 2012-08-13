@@ -17,7 +17,7 @@ struct ArbitraryImpl;
 
 } // namespace Detail
 
-template<typename T, size_t n = 0>
+template<typename T, size_t n = 0, typename B = long>
 struct Arbitrary
 {
     typedef std::function<T()> FunType;
@@ -27,9 +27,9 @@ struct Arbitrary
         fun = Detail::ArbitraryImpl<T>();
     }
 
-    Arbitrary(FunType &&fun):fun(fun) {};
+    Arbitrary(const FunType & fun):fun(fun) {};
 
-    Arbitrary(long low, long high) {
+    Arbitrary(B low, B high) {
         fun = Detail::ArbitraryImpl<T>(low, high);
     }
 
@@ -37,8 +37,8 @@ struct Arbitrary
         return fun();
     }
 
-    template<size_t m>
-    Arbitrary<T> & operator=(const Arbitrary<T, m> &a) {
+    template<size_t m, typename X>
+    Arbitrary<T> & operator=(const Arbitrary<T, m, X> &a) {
         this->fun = a.fun;
         return *this;
     }
@@ -74,14 +74,14 @@ struct ArbitraryIntBase : ArbitraryImplBase {
     }
     IntType operator()() {
         switch (state) {
-            case LOW: 
-                state = HIGH; 
+            case LOW:
+                state = HIGH;
                 return dist.min();
-            case HIGH: 
-                state = RAND; 
+            case HIGH:
+                state = RAND;
                 return dist.max();
             case RAND:
-            default: 
+            default:
                 return dist(engine);
         }
     }
@@ -91,49 +91,49 @@ struct ArbitraryIntBase : ArbitraryImplBase {
 template<>
 struct ArbitraryImpl<unsigned char> : ArbitraryIntBase<unsigned char>{
     template<typename...Args>
-    ArbitraryImpl(Args&&...args): ArbitraryIntBase<unsigned char>(args...) {}
+    ArbitraryImpl(const Args&...args): ArbitraryIntBase<unsigned char>(args...) {}
 };
 
 template<>
 struct ArbitraryImpl<char> : ArbitraryIntBase<char>{
     template<typename...Args>
-    ArbitraryImpl(Args&&...args): ArbitraryIntBase<char>(args...) {}
+    ArbitraryImpl(const Args&...args): ArbitraryIntBase<char>(args...) {}
 };
 
 template<>
 struct ArbitraryImpl<unsigned short> : ArbitraryIntBase<unsigned short> {
     template<typename...Args>
-    ArbitraryImpl(Args&&...args): ArbitraryIntBase<unsigned short>(args...) {}
+    ArbitraryImpl(const Args&...args): ArbitraryIntBase<unsigned short>(args...) {}
 };
 
 template<>
 struct ArbitraryImpl<short> : ArbitraryIntBase<short>{
     template<typename...Args>
-    ArbitraryImpl(Args&&...args): ArbitraryIntBase<short>(args...) {}
+    ArbitraryImpl(const Args&...args): ArbitraryIntBase<short>(args...) {}
 };
 
 template<>
 struct ArbitraryImpl<unsigned int> : ArbitraryIntBase<unsigned int>{
     template<typename...Args>
-    ArbitraryImpl(Args&&...args): ArbitraryIntBase<unsigned int>(args...) {}
+    ArbitraryImpl(const Args&...args): ArbitraryIntBase<unsigned int>(args...) {}
 };
 
 template<>
 struct ArbitraryImpl<int> : ArbitraryIntBase<int>{
     template<typename...Args>
-    ArbitraryImpl(Args&&...args): ArbitraryIntBase<int>(args...) {}
+    ArbitraryImpl(const Args&...args): ArbitraryIntBase<int>(args...) {}
 };
 
 template<>
 struct ArbitraryImpl<unsigned long> : ArbitraryIntBase<unsigned long>{
     template<typename...Args>
-    ArbitraryImpl(Args&&...args): ArbitraryIntBase<unsigned long>(args...) {}
+    ArbitraryImpl(const Args&...args): ArbitraryIntBase<unsigned long>(args...) {}
 };
 
 template<>
 struct ArbitraryImpl<long> : ArbitraryIntBase<long>{
     template<typename...Args>
-    ArbitraryImpl(Args&&...args): ArbitraryIntBase<long>(args...) {}
+    ArbitraryImpl(const Args&...args): ArbitraryIntBase<long>(args...) {}
 };
 
 template<typename RealType>
@@ -147,8 +147,8 @@ struct ArbitraryRealBase : ArbitraryImplBase {
         }
     RealType operator()() {
         switch (state) {
-            case LOW: 
-                state = HIGH; 
+            case LOW:
+                state = HIGH;
                 return dist.min();
             case HIGH:
                 state = RAND;
@@ -163,19 +163,19 @@ struct ArbitraryRealBase : ArbitraryImplBase {
 template<>
 struct ArbitraryImpl<float> : ArbitraryRealBase<float>{
     template<typename...Args>
-    ArbitraryImpl(Args&&...args):ArbitraryRealBase<float>(args...){}
+    ArbitraryImpl(const Args&...args):ArbitraryRealBase<float>(args...){}
 };
 
 template<>
 struct ArbitraryImpl<double> : ArbitraryRealBase<double>{
     template<typename...Args>
-    ArbitraryImpl(Args&&...args):ArbitraryRealBase<double>(args...){}
+    ArbitraryImpl(const Args&...args):ArbitraryRealBase<double>(args...){}
 };
 
 template<>
 struct ArbitraryImpl<std::string> : ArbitraryImplBase {
-    std::uniform_int_distribution<int> length; 
-    std::uniform_int_distribution<int> chars; 
+    std::uniform_int_distribution<int> length;
+    std::uniform_int_distribution<int> chars;
 
     ArbitraryImpl(int low = 0, int high = MAX_LEN):
         ArbitraryImplBase(), length(low, high), chars(32, 126) {}
@@ -192,8 +192,8 @@ struct ArbitraryImpl<std::string> : ArbitraryImplBase {
 
 template<typename T>
 struct ArbitraryImpl<std::vector<T>> : ArbitraryImplBase {
-    std::uniform_int_distribution<int> length; 
-    Arbitrary<T> arb; 
+    std::uniform_int_distribution<int> length;
+    Arbitrary<T> arb;
 
     ArbitraryImpl(int low = 0, int high = MAX_LEN):
         ArbitraryImplBase(), length(low, high) {}
