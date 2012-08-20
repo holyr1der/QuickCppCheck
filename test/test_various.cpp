@@ -74,6 +74,13 @@ void test_various()
         <= Arbitrary<int, 0>(MyArbitrary()))
         (1000);
 
+    (Property<int, std::string>([] (int x, std::string s)
+                                {return true;},
+        "Test", true)
+        <= OneOf<int, 0>({1,2,3,4,5,-8})
+        <= OneOf<std::string, 1, FREQ>({{"Hello", 2}, {"Bye", 8}})
+    )(100);
+
     //Solving Euler problem 9!
     //will, hopefully, fail with the solution!
     (Property<int, int, int, int>([] (int a, int b, int c, int d)

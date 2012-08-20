@@ -29,6 +29,11 @@ struct Acceptor
     {
         return fun(t);
     }
+
+    Acceptor & operator=(const FunType &fun) {
+        this->fun = fun;
+        return *this;
+    }
 };
 
 } // namespace QuickCppCheck

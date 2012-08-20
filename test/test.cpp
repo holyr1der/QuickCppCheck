@@ -1,4 +1,6 @@
 #include <iostream>
+#include <set>
+#include <algorithm>
 
 #include "../quickcppcheck/property.hpp"
 
@@ -8,6 +10,17 @@
 #define _1G   1000000000
 
 using namespace QuickCppCheck;
+
+template<typename T>
+std::ostream& operator<<(std::ostream& out, const std::vector<T> & v)
+{
+    std::cout<<"V<";
+    for (size_t i = 0;i < v.size();++i) {
+        out<<v[i]<<", ";
+    }
+    out<<">";
+    return out;
+}
 
 template<typename T>
 struct prop_mean
@@ -34,7 +47,6 @@ struct prop_mean
 
 void test_arbit()
 {
-
     (Property<int>(prop_mean<int>( _10M, 0, 1000000, true),
             "Mean value of Arbitrary<int> should be close to 0")
         <= Arbitrary<int>(std::numeric_limits<int>::min(), std::numeric_limits<int>::max())
@@ -127,6 +139,39 @@ void test_arbit_bounded()
      (_10M);
 }
 
+void test_oneof()
+{
+    std::vector<std::string> strings({"spam", "ham", "hello"});
+
+    (Property<std::string>([&strings] (const std::string & s) -> bool
+                           { return std::find(strings.begin(),
+                                              strings.end(), s)
+                                    != strings.end();
+                           },
+        "OneOf should return only values in its params list.")
+        <= OneOf<std::string, 0>(strings))
+    (_10M);
+
+    (Property<std::vector<int>>([] (const std::vector<int> & v)
+                    {   std::set<int> notseen(v.begin(), v.end());
+                        (Property<int>([&notseen] (int n)
+                                { notseen.erase(n); return true; },
+                            "Dummy property.")
+                            <= OneOf<int>(v))
+                        (1000);
+                        return notseen.empty();
+                    },
+        "OneOf, given enough time, should return all values in its params.")
+        < Acceptor<std::vector<int>>([](const std::vector<int> &v) 
+                                    {return v.size() > 0;}))
+    (100);
+
+    (Property<int>(prop_mean<int>(_10M, 4, 0.01, true),
+        "Mean value of OneOf for values 1,5 with weights 1,3 should be 4.")
+        <= OneOf<int, 0, FREQ>({{1, 1}, {5,3}}))
+    (_10M);
+}
+
 
 
 int main()
@@ -135,5 +180,6 @@ int main()
     std::cout<<"Running internal tests..."<<std::endl;
     test_arbit();
     test_arbit_bounded();
+    test_oneof();
     std::cout<<"===========tests end=================="<<std::endl;
 }

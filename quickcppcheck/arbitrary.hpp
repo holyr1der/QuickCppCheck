@@ -2,6 +2,7 @@
 #define _QCPPC_ARBITRARY_H
 
 #include <vector>
+#include <map>
 #include <random>
 #include <limits>
 #include <cassert>
@@ -13,6 +14,15 @@ namespace QuickCppCheck {
 
 static const int MAX_LEN = 50;
 
+struct ArbitraryImplBase {
+    std::mt19937 engine;
+
+    ArbitraryImplBase() {
+        std::random_device rd;
+        engine.seed(rd());
+    }
+};
+
 template<typename T, typename Enable = void>
 struct ArbitraryImpl;
 
@@ -21,11 +31,55 @@ struct ArbitraryImpl;
 template<typename T, size_t n = 0>
 struct Fixed
 {
-    typedef std::function<T()> FunType;
-    FunType fun;
+    T _val;
 
-    Fixed(const T & v){
-        fun = [v] () -> T { return v; } ;
+    Fixed(const T & v):_val(v) {};
+
+    T operator()() {
+        return _val;
+    }
+};
+
+struct FREQ {};
+
+template<typename T, size_t n = 0, typename F = void>
+struct OneOf;
+
+template<typename T, size_t n>
+struct OneOf<T, n> : Detail::ArbitraryImplBase
+{
+    std::vector<T> _vals;
+    std::uniform_int_distribution<unsigned int> dist;
+
+    OneOf(const std::vector<T> & v):
+        ArbitraryImplBase(),_vals(v),dist(0, v.size() - 1) {
+        assert(v.size() > 0);
+    };
+
+    T operator()() {
+        return _vals[dist(engine)];
+    }
+};
+
+template<typename T, size_t n>
+struct OneOf<T, n, FREQ> : Detail::ArbitraryImplBase
+{
+    std::vector<T> _vals;
+    std::discrete_distribution<unsigned int> dist;
+
+    OneOf(const std::map<T, double> & m):ArbitraryImplBase() {
+        assert(m.size() > 0);
+
+        std::vector<double> _freqs;
+        for(auto it = m.begin(); it !=  m.end(); ++it) {
+            _vals.push_back(it->first);
+            _freqs.push_back(it->second);
+        };
+        dist = std::discrete_distribution<unsigned int>(_freqs.begin(), _freqs.end());
+    }
+
+    T operator()() {
+        return _vals[dist(engine)];
     }
 };
 
@@ -35,32 +89,20 @@ struct Arbitrary
     typedef std::function<T()> FunType;
     FunType fun;
 
-    Arbitrary() {
-        fun = Detail::ArbitraryImpl<T>();
-    }
+    Arbitrary():fun(Detail::ArbitraryImpl<T>()) {};
 
     Arbitrary(const FunType & fun):fun(fun) {};
 
-    Arbitrary(B low, B high) {
-        fun = Detail::ArbitraryImpl<T>(low, high);
-    }
+    Arbitrary(B low, B high):fun(Detail::ArbitraryImpl<T>(low, high)) {};
 
     T operator()() {
         return fun();
     }
 
-    template<size_t m, typename X>
-    Arbitrary<T> & operator=(const Arbitrary<T, m, X> & a) {
-        this->fun = a.fun;
+    Arbitrary<T> & operator=(const FunType & fun) {
+        this->fun = fun;
         return *this;
     }
-
-    template<size_t m>
-    Arbitrary<T> & operator=(const Fixed<T, m> & a) {
-        this->fun = a.fun;
-        return *this;
-    }
-
 };
 
 namespace Detail {
@@ -69,15 +111,6 @@ enum STATE {
     LOW,
     HIGH,
     RAND,
-};
-
-struct ArbitraryImplBase {
-    std::mt19937 engine;
-
-    ArbitraryImplBase() {
-        std::random_device rd;
-        engine.seed(rd());
-    }
 };
 
 template<typename IntType>

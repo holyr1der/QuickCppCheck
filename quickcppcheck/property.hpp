@@ -127,6 +127,14 @@ public:
         std::get<I>(arbs) = a;
         return *this;
     }
+
+    template<typename T, size_t I, typename F = void>
+    Property<Args...> & operator<=(const OneOf<T, I, F> & a)
+    {
+        std::get<I>(arbs) = a;
+        return *this;
+    }
+
 };
 
 } // namespace QuickCppCheck
