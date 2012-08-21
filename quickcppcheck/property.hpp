@@ -6,7 +6,6 @@
 #include <tuple>
 
 #include "arbitrary.hpp"
-#include "acceptor.hpp"
 #include "printer.hpp"
 
 namespace QuickCppCheck {
@@ -15,33 +14,45 @@ namespace QuickCppCheck {
 template<std::size_t N>
 struct apply_func {
     template<typename F, typename... Types, typename... Args>
-    static bool apply(F & f, 
-                    std::tuple<Arbitrary<Types>...> & arbs,
-                    std::tuple<Acceptor<Types>...> & accs, 
-                    std::tuple<Types...> & t, 
+    static typename F::result_type
+            apply(F & f,
+                    std::tuple<Types...> & data,
                     Args & ... args)
     {
-        do {
-            std::get<N-1>(t) = std::get<N-1>(arbs)();
-        } while (!std::get<N-1>(accs)(std::get<N-1>(t)));
-
-        return apply_func<N-1>::apply(f, arbs, accs, t, std::get<N-1>(t), args...);
+        return apply_func<N-1>::apply(f, data, std::get<N-1>(data), args...);
     }
 };
 
 template<>
 struct apply_func<0> {
     template<typename F, typename... Types, typename... Args>
-    static bool apply(F & f, 
-                    std::tuple<Arbitrary<Types>...> & arbs,
-                    std::tuple<Acceptor<Types>...> & accs,
-                    std::tuple<Types...> & t, 
+    static typename F::result_type
+            apply(F & f,
+                    std::tuple<Types...> & data,
                     Args & ... args)
     {
         return f(args...);
     }
 };
 
+template<std::size_t N>
+struct apply_func_individually {
+    template<typename... Types, typename... Args>
+    static void apply(std::tuple<Arbitrary<Types>...> & arbs,
+                      std::tuple<Types...> & data)
+    {
+        std::get<N-1>(data) = std::get<N-1>(arbs)();
+        apply_func_individually<N-1>::apply(arbs, data);
+    }
+};
+
+template<>
+struct apply_func_individually<0> {
+    template<typename... Types, typename... Args>
+    static void apply(std::tuple<Arbitrary<Types>...> & arbs,
+                      std::tuple<Types...> & data)
+    {}
+};
 } //namespace Detail
 
 static Detail::ColoredString RED = Detail::ColoredString(Detail::RED_COLOR);
@@ -53,27 +64,30 @@ class Property
 {
 private:
     std::tuple<typename std::decay<Args>::type...> data;
-    std::tuple<Acceptor<typename std::decay<Args>::type>...> accs;
     std::tuple<Arbitrary<typename std::decay<Args>::type>...> arbs;
 
-    typedef std::function<bool(Args...)> FunType;
+    typedef std::function<bool(Args&...)> FunType;
+    typedef std::function<bool(Args&...)> AcceptorType;
 
     FunType fun;
+    AcceptorType acceptor;
     std::string name;
     int verbose;
 
-    static const int MAX_TESTS = 1000000000; //that's one billion
+    static const unsigned int MAX_TESTS = 1000;
+    static const unsigned int MAX_FAILS = 1000;
 
     static bool initialized;
 
 public:
-    Property(FunType && fun, std::string && name = std::string("<unnamed>"), int verbose = 0):
-        fun(fun), name(name), verbose(verbose)
+    Property(const FunType & fun, const std::string & name = std::string("<unnamed>"), int verbose = 0):
+        fun(fun), acceptor(NULL), name(name), verbose(verbose)
     {}
 
-    void operator()(int n = 1000)
+    void operator()(unsigned int ntests = MAX_TESTS, unsigned int nfails = MAX_FAILS)
     {
         bool ok = true;
+        unsigned int fails = 0;
 
         if (verbose) {
             std::cout<<std::endl<<"[--------start test--------]";
@@ -81,10 +95,21 @@ public:
         std::cout<<std::endl;
         std::cout<<"Property: "<<YELLOW(name)<<std::endl;
 
-        unsigned int N = n < 0 ? MAX_TESTS : n;
+        for (unsigned int i = 1; i <= ntests; ++i) {
+            Detail::apply_func_individually<sizeof...(Args)>::apply(arbs, data);
 
-        for (unsigned int i = 1;i <= N;++i) {
-            if (!Detail::apply_func<sizeof...(Args)>::apply(fun, arbs, accs, data)) {
+            if (acceptor) {
+                while (!Detail::apply_func<sizeof...(Args)>::apply(acceptor, data)) {
+                    if (++fails == nfails) {
+                        std::cout<<RED("Arguments exhausted")<<" after "
+                            <<fails<<" fails."<<std::endl;
+                        return;
+                    }
+                    Detail::apply_func_individually<sizeof...(Args)>::apply(arbs, data);
+                }
+            }
+
+            if (!Detail::apply_func<sizeof...(Args)>::apply(fun, data)) {
                 std::cout<<RED("Failed.")<<" Falsifiable after "<<i<<" tests."<<std::endl;
                 if (verbose) {
                     std::cout<<i<<": ";
@@ -100,17 +125,16 @@ public:
         }
 
         if (ok) {
-            std::cout<<GREEN("OK.")<<" Passed "<<N<<" tests."<<std::endl;
+            std::cout<<GREEN("OK.")<<" Passed "<<ntests<<" tests."<<std::endl;
         }
         if (verbose) {
             std::cout<<"[--------end test------]"<<std::endl;
         }
     }
 
-    template<typename T, size_t I>
-    Property<Args...> & operator<(const Acceptor<T, I> & a)
+    Property<Args...> & operator|(const AcceptorType & acceptor)
     {
-        std::get<I>(accs) = a;
+        this->acceptor = acceptor;
         return *this;
     }
 
@@ -134,7 +158,6 @@ public:
         std::get<I>(arbs) = a;
         return *this;
     }
-
 };
 
 } // namespace QuickCppCheck

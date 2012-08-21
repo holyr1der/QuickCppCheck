@@ -118,9 +118,10 @@ void test_arbit_bounded()
     (Property<double>(prop_mean<double>( _10M, 0.5, 0.01, true),
         "Mean value of Arbitrary<double>() with x >= 0 should be close to 0.5",
         0)
-        <  Acceptor<double>([] (double x) { return x >= 0; })
-        <= Arbitrary<double>())
-    (_10M);
+        //<  Acceptor<double>([] (double x) { return x >= 0; }
+        <= Arbitrary<double>()
+        | std::bind2nd(std::greater_equal<double>(), 0))
+    (_10M, _10M);
 
     (Property<float>(prop_mean<float>(_10M, -13., 0.01, true),
         "Mean value of Arbitrary<float>(-28., 2.) should be close to -13.")
@@ -129,9 +130,10 @@ void test_arbit_bounded()
 
     (Property<float>(prop_mean<float>(_10M, -0.25, 0.01, true),
         "Mean value of Arbitrary<float>() whith x < 0.5 should be close to -0.25")
-        < Acceptor<float>(std::bind2nd(std::less<float>(), 0.5))
-        <=Arbitrary<float>())
-     (_10M);
+        //< Acceptor<float>(std::bind2nd(std::less<float>(), 0.5))
+        <= Arbitrary<float>()
+        | std::bind2nd(std::less<double>(), 0.5))
+     (_10M, _10M);
 
     (Property<float>(prop_mean<float>(_10M, 3.7, 0.01, true),
         "Mean value of Arbitrary<float>(2.8, 4.6) should be close to 3.7")
@@ -162,8 +164,8 @@ void test_oneof()
                         return notseen.empty();
                     },
         "OneOf, given enough time, should return all values in its params.")
-        < Acceptor<std::vector<int>>([](const std::vector<int> &v) 
-                                    {return v.size() > 0;}))
+        //< Acceptor<std::vector<int>>([](const std::vector<int> &v) {return v.size() > 0;})
+        | [](const std::vector<int> &v) { return v.size() > 0;} )
     (100);
 
     (Property<int>(prop_mean<int>(_10M, 4, 0.01, true),

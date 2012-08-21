@@ -47,36 +47,33 @@ void test_various()
               //if (s[0] == 'a' ) s[0] = 'b';
               return tmp == s;
             },
-            "reverse cancels reverse",
-            0)
-        < Acceptor<std::string, 0>())
+            "reverse cancels reverse"))
         (10000);
 
     (Property<std::vector<int>>([] (std::vector<int> v)
             { return v.size() <= 2 || (v.size() > 0 && (v[0] <= 2000000000 ));},
             "Testing vector of ints, this should randomly fail.",
             0)
-        < Acceptor<std::vector<int>, 0>([] (const std::vector<int> &v)
-            { return v.size() < 31; }))
-        (30);
+        | [](const std::vector<int> &v) { return v.size() < 31; })
+    (30);
 
-    (Property<std::vector<std::string>>([] (std::vector<std::string> v)
+    (Property<std::vector<std::string>&>([] (std::vector<std::string> &v)
             { return v.size() <= 2 || (v.size() > 0 && (v[0]  != "a"));},
             "Testing vector of strings, this should randomly fail.",
             0)
-        < Acceptor<std::vector<std::string>, 0>([] (const std::vector<std::string> &v)
-            { return v.size() < 31; })
         <= Arbitrary<std::vector<std::string>>(1,6)
+        | [](const std::vector<std::string> &v) { return v.size() < 31; }
         )
         (30);
 
-    (Property<int&>(fun())
+    (Property<int&>(fun(),
+            "This fails with input 666.")
         <= Arbitrary<int, 0>(MyArbitrary()))
         (1000);
 
     (Property<int, std::string>([] (int x, std::string s)
                                 {return true;},
-        "Test", true)
+        "Test")
         <= OneOf<int, 0>({1,2,3,4,5,-8})
         <= OneOf<std::string, 1, FREQ>({{"Hello", 2}, {"Bye", 8}})
     )(100);

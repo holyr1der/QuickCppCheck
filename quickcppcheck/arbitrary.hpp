@@ -24,7 +24,12 @@ struct ArbitraryImplBase {
 };
 
 template<typename T, typename Enable = void>
-struct ArbitraryImpl;
+struct ArbitraryImpl {
+    T operator()() {
+        T t;
+        return t;
+    }
+};
 
 } // namespace Detail
 
