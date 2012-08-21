@@ -8,6 +8,11 @@
 #include "arbitrary.hpp"
 #include "printer.hpp"
 
+#define QCPP_STRINGIFY(x) #x
+#define QCPP_TOSTRING(x) QCPP_STRINGIFY(x)
+#define QCPP_AT __FILE__ ":" QCPP_TOSTRING(__LINE__)
+#define PROP QCPP_AT ":"
+
 namespace QuickCppCheck {
     namespace Detail {
 
@@ -37,7 +42,7 @@ struct apply_func<0> {
 
 template<std::size_t N>
 struct apply_func_individually {
-    template<typename... Types, typename... Args>
+    template<typename... Types>
     static void apply(std::tuple<Arbitrary<Types>...> & arbs,
                       std::tuple<Types...> & data)
     {
@@ -48,7 +53,7 @@ struct apply_func_individually {
 
 template<>
 struct apply_func_individually<0> {
-    template<typename... Types, typename... Args>
+    template<typename... Types>
     static void apply(std::tuple<Arbitrary<Types>...> & arbs,
                       std::tuple<Types...> & data)
     {}
@@ -80,7 +85,7 @@ private:
     static bool initialized;
 
 public:
-    Property(const FunType & fun, const std::string & name = std::string("<unnamed>"), int verbose = 0):
+    Property(const FunType & fun, const std::string & name = std::string("<unnamed>"), int verbose = 1):
         fun(fun), acceptor(NULL), name(name), verbose(verbose)
     {}
 
@@ -89,11 +94,13 @@ public:
         bool ok = true;
         unsigned int fails = 0;
 
-        if (verbose) {
+        if (verbose > 1) {
             std::cout<<std::endl<<"[--------start test--------]";
         }
-        std::cout<<std::endl;
-        std::cout<<"Property: "<<YELLOW(name)<<std::endl;
+        if (verbose > 0) {
+            std::cout<<std::endl;
+            std::cout<<"Property: "<<YELLOW(name)<<std::endl;
+        }
 
         for (unsigned int i = 1; i <= ntests; ++i) {
             Detail::apply_func_individually<sizeof...(Args)>::apply(arbs, data);
@@ -101,33 +108,39 @@ public:
             if (acceptor) {
                 while (!Detail::apply_func<sizeof...(Args)>::apply(acceptor, data)) {
                     if (++fails == nfails) {
-                        std::cout<<RED("Arguments exhausted")<<" after "
-                            <<fails<<" fails."<<std::endl;
-                        return;
+                        if (verbose > 0) {
+                            std::cout<<RED("Arguments exhausted")<<" after "
+                                <<fails<<" fails."<<std::endl;
+                            return;
+                        }
                     }
                     Detail::apply_func_individually<sizeof...(Args)>::apply(arbs, data);
                 }
             }
 
             if (!Detail::apply_func<sizeof...(Args)>::apply(fun, data)) {
-                std::cout<<RED("Failed.")<<" Falsifiable after "<<i<<" tests."<<std::endl;
-                if (verbose) {
-                    std::cout<<i<<": ";
+                if (verbose > 0) {
+                    std::cout<<RED("Failed.")<<" Falsifiable after "<<i<<" tests."<<std::endl;
+                    if (verbose > 1) {
+                        std::cout<<i<<": ";
+                    }
+                    print_tuple(data);
                 }
-                print_tuple(data);
                 ok = false;
                 break;
             }
-            if (verbose > 0) {
+            if (verbose > 1) {
                 std::cout<<i<<": ";
                 print_tuple(data);
             }
         }
 
         if (ok) {
-            std::cout<<GREEN("OK.")<<" Passed "<<ntests<<" tests."<<std::endl;
+            if (verbose > 0) {
+                std::cout<<GREEN("OK.")<<" Passed "<<ntests<<" tests."<<std::endl;
+            }
         }
-        if (verbose) {
+        if (verbose > 1) {
             std::cout<<"[--------end test------]"<<std::endl;
         }
     }

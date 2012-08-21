@@ -72,14 +72,12 @@ void test_arbit()
 void test_arbit_bounded()
 {
     (Property<int>([](int a) { return a <= 100 && a >= -100;},
-        "Arbitrary<int>(-100, 100) should return between -100 and 100 inclusive",
-        0)
+        "Arbitrary<int>(-100, 100) should return between -100 and 100 inclusive")
         <= Arbitrary<int>(-100, 100))
     (_10M);
 
     (Property<unsigned int>([](unsigned int a) { return a <= 1000 && a >= 0;},
-        "Arbitrary<unsigned int>(0, 1000) should return between 0 and 1000 inclusive",
-        0)
+        "Arbitrary<unsigned int>(0, 1000) should return between 0 and 1000 inclusive")
         <= Arbitrary<unsigned int>(0, 1000))
     (_10M);
 
@@ -87,37 +85,32 @@ void test_arbit_bounded()
                      { return n <= std::numeric_limits<short>::max() &&
                               n >= std::numeric_limits<short>::min();
                      },
-        "Arbitrary<short> should be in the expected range of shorts.",
-        0))
+        "Arbitrary<short> should be in the expected range of shorts."))
     (_10M);
 
     (Property<int>(prop_mean<int>( _10M, 0, 2, true),
-        "Mean value of Arbitrary<int>(-1000, 1000) should be close enough to 0",
-        0)
+        "Mean value of Arbitrary<int>(-1000, 1000) should be close enough to 0")
         <= Arbitrary<int>(-1000, 1000))
     (_10M);
 
     (Property<unsigned int>(prop_mean<unsigned int>( _10M, 500, 2),
-        "Mean value of Arbitrary<unsigned int>(0, 1000) should be close enough to 500",
-        0)
+        "Mean value of Arbitrary<unsigned int>(0, 1000) should be close enough to 500")
         <= Arbitrary<unsigned int>(0, 1000))
     (_10M);
 
     (Property<int>(prop_mean<int>( _10M, std::numeric_limits<int>::max() / 2, 1000000, true),
-        "Mean value of Arbitrary<int>(0, std::numeric_limits<int>::max()) should be close to std::numeric_limits<int>::max() / 2",
-        0)
+        "Mean value of Arbitrary<int>(0, std::numeric_limits<int>::max()) "
+        "should be close to std::numeric_limits<int>::max() / 2")
         <= Arbitrary<int>(0, std::numeric_limits<int>::max() - 1 ))
     (_10M);
 
     (Property<double>(prop_mean<double>( _10M, 0.0, 0.01, true),
-        "Mean value of Arbitrary<double>() should be close to 0.0",
-        0)
+        "Mean value of Arbitrary<double>() should be close to 0.0")
         <= Arbitrary<double>())
     (_10M);
 
     (Property<double>(prop_mean<double>( _10M, 0.5, 0.01, true),
-        "Mean value of Arbitrary<double>() with x >= 0 should be close to 0.5",
-        0)
+        "Mean value of Arbitrary<double>() with x >= 0 should be close to 0.5")
         //<  Acceptor<double>([] (double x) { return x >= 0; }
         <= Arbitrary<double>()
         | std::bind2nd(std::greater_equal<double>(), 0))
@@ -130,7 +123,6 @@ void test_arbit_bounded()
 
     (Property<float>(prop_mean<float>(_10M, -0.25, 0.01, true),
         "Mean value of Arbitrary<float>() whith x < 0.5 should be close to -0.25")
-        //< Acceptor<float>(std::bind2nd(std::less<float>(), 0.5))
         <= Arbitrary<float>()
         | std::bind2nd(std::less<double>(), 0.5))
      (_10M, _10M);
@@ -150,7 +142,7 @@ void test_oneof()
                                               strings.end(), s)
                                     != strings.end();
                            },
-        "OneOf should return only values in its params list.")
+        PROP"OneOf should return only values in its params list.")
         <= OneOf<std::string, 0>(strings))
     (_10M);
 
@@ -158,13 +150,12 @@ void test_oneof()
                     {   std::set<int> notseen(v.begin(), v.end());
                         (Property<int>([&notseen] (int n)
                                 { notseen.erase(n); return true; },
-                            "Dummy property.")
+                            "Dummy property.", 0)
                             <= OneOf<int>(v))
                         (1000);
                         return notseen.empty();
                     },
-        "OneOf, given enough time, should return all values in its params.")
-        //< Acceptor<std::vector<int>>([](const std::vector<int> &v) {return v.size() > 0;})
+        PROP"OneOf, given enough time, should return all values in its params.")
         | [](const std::vector<int> &v) { return v.size() > 0;} )
     (100);
 
