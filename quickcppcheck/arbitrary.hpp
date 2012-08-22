@@ -33,7 +33,14 @@ struct ArbitraryImpl {
 
 } // namespace Detail
 
-template<typename T, size_t n = 0>
+enum PROVIDER {
+    RAND,
+    FIX,
+    ONE,
+    FREQ,
+};
+
+template<typename T>
 struct Fixed
 {
     T _val;
@@ -45,13 +52,8 @@ struct Fixed
     }
 };
 
-struct FREQ {};
-
-template<typename T, size_t n = 0, typename F = void>
-struct OneOf;
-
-template<typename T, size_t n>
-struct OneOf<T, n> : Detail::ArbitraryImplBase
+template<typename T>
+struct OneOf : Detail::ArbitraryImplBase
 {
     std::vector<T> _vals;
     std::uniform_int_distribution<unsigned int> dist;
@@ -66,13 +68,13 @@ struct OneOf<T, n> : Detail::ArbitraryImplBase
     }
 };
 
-template<typename T, size_t n>
-struct OneOf<T, n, FREQ> : Detail::ArbitraryImplBase
+template<typename T>
+struct Freq : Detail::ArbitraryImplBase
 {
     std::vector<T> _vals;
     std::discrete_distribution<unsigned int> dist;
 
-    OneOf(const std::map<T, double> & m):ArbitraryImplBase() {
+    Freq(const std::map<T, double> & m):ArbitraryImplBase() {
         assert(m.size() > 0);
 
         std::vector<double> _freqs;
@@ -88,7 +90,7 @@ struct OneOf<T, n, FREQ> : Detail::ArbitraryImplBase
     }
 };
 
-template<typename T, size_t n = 0, typename B = long>
+template<typename T, typename B = long>
 struct Arbitrary
 {
     typedef std::function<T()> FunType;
@@ -111,6 +113,30 @@ struct Arbitrary
 };
 
 namespace Detail {
+
+template<PROVIDER P, class T, class B = long>
+struct select {};
+
+template<class T, class B>
+struct select<RAND, T, B>
+{
+    typedef Arbitrary<T, B> RType;
+};
+template<class T>
+struct select<FIX, T>
+{
+    typedef Fixed<T> RType;
+};
+template<class T>
+struct select<ONE, T>
+{
+    typedef OneOf<T> RType;
+};
+template<class T>
+struct select<FREQ, T>
+{
+    typedef Freq<T> RType;
+};
 
 enum STATE {
     LOW,

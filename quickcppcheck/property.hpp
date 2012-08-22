@@ -58,6 +58,19 @@ struct apply_func_individually<0> {
                       std::tuple<Types...> & data)
     {}
 };
+
+template<size_t POS, typename T, typename...Args>
+struct get_type_at
+{
+    typedef typename get_type_at<POS - 1, Args...>::type type;
+};
+
+template<typename T, typename...Args>
+struct get_type_at<0, T, Args...>
+{
+    typedef typename std::decay<T>::type type;
+};
+
 } //namespace Detail
 
 static Detail::ColoredString RED = Detail::ColoredString(Detail::RED_COLOR);
@@ -145,30 +158,57 @@ public:
         }
     }
 
+    template<size_t POS, PROVIDER P, typename T>
+    Property<Args...> & _(T l, T h)
+    {
+        typedef typename Detail::get_type_at<POS, Args...>::type ValType;
+        typedef typename Detail::select<P, ValType, T>::RType ArbitraryType;
+        std::get<POS>(arbs) = ArbitraryType(l, h);
+        return *this;
+    }
+
+    template<size_t POS, PROVIDER P, typename T>
+    Property<Args...> & _(const T &t, typename std::enable_if<P==RAND>::type* = 0)
+    {
+        typedef typename Detail::get_type_at<POS, Args...>::type ValType;
+        typedef typename Detail::select<P, ValType>::RType ArbitraryType;
+        std::get<POS>(arbs) = ArbitraryType(t);
+        return *this;
+    }
+
+    template<size_t POS, PROVIDER P, typename ValType =
+                typename Detail::get_type_at<POS, Args...>::type>
+    Property<Args...> & _(const ValType &v,
+            typename std::enable_if<P==FIX>::type* = 0)
+    {
+        typedef typename Detail::select<P, ValType>::RType ArbitraryType;
+        std::get<POS>(arbs) = ArbitraryType(v);
+        return *this;
+    }
+
+    template<size_t POS, PROVIDER P, typename ValType =
+                typename Detail::get_type_at<POS, Args...>::type>
+    Property<Args...> & _(const std::vector<ValType> &v,
+            typename std::enable_if<P==ONE>::type* = 0)
+    {
+        typedef typename Detail::select<P, ValType>::RType ArbitraryType;
+        std::get<POS>(arbs) = ArbitraryType(v);
+        return *this;
+    }
+
+    template<size_t POS, PROVIDER P, typename ValType =
+                typename Detail::get_type_at<POS, Args...>::type>
+    Property<Args...> & _(const std::map<ValType, double> &v,
+            typename std::enable_if<P==FREQ>::type* = 0)
+    {
+        typedef typename Detail::select<P, ValType>::RType ArbitraryType;
+        std::get<POS>(arbs) = ArbitraryType(v);
+        return *this;
+    }
+
     Property<Args...> & operator|(const AcceptorType & acceptor)
     {
         this->acceptor = acceptor;
-        return *this;
-    }
-
-    template<typename T, size_t I, typename B = long>
-    Property<Args...> & operator<=(const Arbitrary<T, I, B> & a)
-    {
-        std::get<I>(arbs) = a;
-        return *this;
-    }
-
-    template<typename T, size_t I>
-    Property<Args...> & operator<=(const Fixed<T, I> & a)
-    {
-        std::get<I>(arbs) = a;
-        return *this;
-    }
-
-    template<typename T, size_t I, typename F = void>
-    Property<Args...> & operator<=(const OneOf<T, I, F> & a)
-    {
-        std::get<I>(arbs) = a;
         return *this;
     }
 };

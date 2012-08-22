@@ -49,7 +49,8 @@ void test_arbit()
 {
     (Property<int>(prop_mean<int>( _10M, 0, 1000000, true),
             "Mean value of Arbitrary<int> should be close to 0")
-        <= Arbitrary<int>(std::numeric_limits<int>::min(), std::numeric_limits<int>::max())
+        ._<0, RAND>(std::numeric_limits<int>::min(),
+                    std::numeric_limits<int>::max())
     )
     (_10M);
 
@@ -73,12 +74,12 @@ void test_arbit_bounded()
 {
     (Property<int>([](int a) { return a <= 100 && a >= -100;},
         "Arbitrary<int>(-100, 100) should return between -100 and 100 inclusive")
-        <= Arbitrary<int>(-100, 100))
+        ._<0, RAND>(-100, 100))
     (_10M);
 
     (Property<unsigned int>([](unsigned int a) { return a <= 1000 && a >= 0;},
         "Arbitrary<unsigned int>(0, 1000) should return between 0 and 1000 inclusive")
-        <= Arbitrary<unsigned int>(0, 1000))
+        ._<0, RAND>(0, 1000))
     (_10M);
 
     (Property<short>([] (short n) 
@@ -90,46 +91,46 @@ void test_arbit_bounded()
 
     (Property<int>(prop_mean<int>( _10M, 0, 2, true),
         "Mean value of Arbitrary<int>(-1000, 1000) should be close enough to 0")
-        <= Arbitrary<int>(-1000, 1000))
+        ._<0, RAND>(-1000, 1000))
     (_10M);
 
     (Property<unsigned int>(prop_mean<unsigned int>( _10M, 500, 2),
         "Mean value of Arbitrary<unsigned int>(0, 1000) should be close enough to 500")
-        <= Arbitrary<unsigned int>(0, 1000))
+        ._<0, RAND>(0, 1000))
     (_10M);
 
     (Property<int>(prop_mean<int>( _10M, std::numeric_limits<int>::max() / 2, 1000000, true),
         "Mean value of Arbitrary<int>(0, std::numeric_limits<int>::max()) "
         "should be close to std::numeric_limits<int>::max() / 2")
-        <= Arbitrary<int>(0, std::numeric_limits<int>::max() - 1 ))
+        ._<0, RAND>(0, std::numeric_limits<int>::max() - 1 ))
     (_10M);
 
     (Property<double>(prop_mean<double>( _10M, 0.0, 0.01, true),
         "Mean value of Arbitrary<double>() should be close to 0.0")
-        <= Arbitrary<double>())
+        ._<0, RAND>(Arbitrary<double>()))
     (_10M);
 
     (Property<double>(prop_mean<double>( _10M, 0.5, 0.01, true),
         "Mean value of Arbitrary<double>() with x >= 0 should be close to 0.5")
         //<  Acceptor<double>([] (double x) { return x >= 0; }
-        <= Arbitrary<double>()
+        ._<0, RAND>(Arbitrary<double>())
         | std::bind2nd(std::greater_equal<double>(), 0))
     (_10M, _10M);
 
     (Property<float>(prop_mean<float>(_10M, -13., 0.01, true),
         "Mean value of Arbitrary<float>(-28., 2.) should be close to -13.")
-        <=Arbitrary<float>(-28., 2.))
+        ._<0, RAND>(-28., 2.))
      (_10M);
 
     (Property<float>(prop_mean<float>(_10M, -0.25, 0.01, true),
         "Mean value of Arbitrary<float>() whith x < 0.5 should be close to -0.25")
-        <= Arbitrary<float>()
+        ._<0, RAND>(Arbitrary<float>())
         | std::bind2nd(std::less<double>(), 0.5))
      (_10M, _10M);
 
     (Property<float>(prop_mean<float>(_10M, 3.7, 0.01, true),
         "Mean value of Arbitrary<float>(2.8, 4.6) should be close to 3.7")
-        <= Arbitrary<float, 0, float>(2.8, 4.6))
+        ._<0, RAND>(2.8, 4.6))
      (_10M);
 }
 
@@ -143,7 +144,7 @@ void test_oneof()
                                     != strings.end();
                            },
         PROP"OneOf should return only values in its params list.")
-        <= OneOf<std::string, 0>(strings))
+        ._<0, ONE>(strings))
     (_10M);
 
     (Property<std::vector<int>>([] (const std::vector<int> & v)
@@ -151,17 +152,17 @@ void test_oneof()
                         (Property<int>([&notseen] (int n)
                                 { notseen.erase(n); return true; },
                             "Dummy property.", 0)
-                            <= OneOf<int>(v))
+                            ._<0, ONE>(v))
                         (1000);
                         return notseen.empty();
                     },
         PROP"OneOf, given enough time, should return all values in its params.")
         | [](const std::vector<int> &v) { return v.size() > 0;} )
-    (100);
+    (1000);
 
     (Property<int>(prop_mean<int>(_10M, 4, 0.01, true),
         "Mean value of OneOf for values 1,5 with weights 1,3 should be 4.")
-        <= OneOf<int, 0, FREQ>({{1, 1}, {5,3}}))
+        ._<0, FREQ>({{1, 1}, {5,3}}))
     (_10M);
 }
 
