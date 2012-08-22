@@ -33,13 +33,6 @@ struct ArbitraryImpl {
 
 } // namespace Detail
 
-enum PROVIDER {
-    RAND,
-    FIX,
-    ONE,
-    FREQ,
-};
-
 template<typename T>
 struct Fixed
 {
@@ -113,30 +106,6 @@ struct Arbitrary
 };
 
 namespace Detail {
-
-template<PROVIDER P, class T, class B = long>
-struct select {};
-
-template<class T, class B>
-struct select<RAND, T, B>
-{
-    typedef Arbitrary<T, B> RType;
-};
-template<class T>
-struct select<FIX, T>
-{
-    typedef Fixed<T> RType;
-};
-template<class T>
-struct select<ONE, T>
-{
-    typedef OneOf<T> RType;
-};
-template<class T>
-struct select<FREQ, T>
-{
-    typedef Freq<T> RType;
-};
 
 enum STATE {
     LOW,

@@ -158,51 +158,43 @@ public:
         }
     }
 
-    template<size_t POS, PROVIDER P, typename T>
-    Property<Args...> & _(T l, T h)
+    template<size_t POS, typename T>
+    Property<Args...> & Rnd(T l, T h)
     {
         typedef typename Detail::get_type_at<POS, Args...>::type ValType;
-        typedef typename Detail::select<P, ValType, T>::RType ArbitraryType;
-        std::get<POS>(arbs) = ArbitraryType(l, h);
+        std::get<POS>(arbs) = Arbitrary<ValType, T>(l, h);
         return *this;
     }
 
-    template<size_t POS, PROVIDER P, typename T>
-    Property<Args...> & _(const T &t, typename std::enable_if<P==RAND>::type* = 0)
+    template<size_t POS, typename T>
+    Property<Args...> & Rnd(const T &t)
     {
         typedef typename Detail::get_type_at<POS, Args...>::type ValType;
-        typedef typename Detail::select<P, ValType>::RType ArbitraryType;
-        std::get<POS>(arbs) = ArbitraryType(t);
+        std::get<POS>(arbs) = Arbitrary<ValType>(t);
         return *this;
     }
 
-    template<size_t POS, PROVIDER P, typename ValType =
+    template<size_t POS, typename ValType =
                 typename Detail::get_type_at<POS, Args...>::type>
-    Property<Args...> & _(const ValType &v,
-            typename std::enable_if<P==FIX>::type* = 0)
+    Property<Args...> & Fix(const ValType &v)
     {
-        typedef typename Detail::select<P, ValType>::RType ArbitraryType;
-        std::get<POS>(arbs) = ArbitraryType(v);
+        std::get<POS>(arbs) = Fixed<ValType>(v);
         return *this;
     }
 
-    template<size_t POS, PROVIDER P, typename ValType =
+    template<size_t POS, typename ValType =
                 typename Detail::get_type_at<POS, Args...>::type>
-    Property<Args...> & _(const std::vector<ValType> &v,
-            typename std::enable_if<P==ONE>::type* = 0)
+    Property<Args...> & One(const std::vector<ValType> &v)
     {
-        typedef typename Detail::select<P, ValType>::RType ArbitraryType;
-        std::get<POS>(arbs) = ArbitraryType(v);
+        std::get<POS>(arbs) = OneOf<ValType>(v);
         return *this;
     }
 
-    template<size_t POS, PROVIDER P, typename ValType =
+    template<size_t POS, typename ValType =
                 typename Detail::get_type_at<POS, Args...>::type>
-    Property<Args...> & _(const std::map<ValType, double> &v,
-            typename std::enable_if<P==FREQ>::type* = 0)
+    Property<Args...> & Frq(const std::map<ValType, double> &v)
     {
-        typedef typename Detail::select<P, ValType>::RType ArbitraryType;
-        std::get<POS>(arbs) = ArbitraryType(v);
+        std::get<POS>(arbs) = Freq<ValType>(v);
         return *this;
     }
 

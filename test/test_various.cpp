@@ -66,20 +66,20 @@ void test_various()
     (Property<std::vector<std::string>&>([] (std::vector<std::string> &v)
             { return v.size() <= 2 || (v.size() > 0 && (v[0]  != "a"));},
         "Testing vector of strings, this should randomly fail.", 0)
-        ._<0, RAND>(1,6)
+        .Rnd<0>(1,6)
         | [](const std::vector<std::string> &v) { return v.size() < 31; })
     (30);
 
     (Property<int&>(fun(),
         "This fails with input 666.")
-        ._<0, RAND>(MyArbitrary()))
+        .Rnd<0>(MyArbitrary()))
     (1000);
 
     (Property<int, std::string>([] (int x, std::string s)
                                 {return true;},
         "Test", 2)
-        ._<0, ONE>({1,2,3,4,5,-8})
-        ._<1, FREQ>({{"Hello", 2}, {"Bye", 8}}))
+        .One<0>({1,2,3,4,5,-8})
+        .Frq<1>({{"Hello", 2}, {"Bye", 8}}))
     (10);
 
     //Solving Euler problem 9!
@@ -91,19 +91,19 @@ void test_various()
                                   },
         "Euler problem 9!!")
         //a, b and c can't be bigger than 500
-        //._<0>(Arbitrary<int>(1, 500))
-        ._<0, RAND>(1, 500)
-        ._<1, RAND>(1, 500)
-        ._<2, RAND>(1, 500)
+        .Rnd<0>(1, 500)
+        .Rnd<1>(1, 500)
+        .Rnd<2>(1, 500)
         //d must be always 1000
-        ._<3, FIX>(1000))
+        .Fix<3>(1000))
         //run and hopefully will hit the solution
     (100000000);
 
     (Property<std::map<std::vector<int>,std::string>>([](const std::map<std::vector<int>,std::string>&m){
             return true;},
         "Check that we accept complex types")
-        ._<0, FIX>({{{0,1},"test"}, {{1,2,3}, "haha"}}))
+        .Fix<0>({{{0,1},"test"}, {{1,2,3}, "haha"}})
+        .Frq<0>({{{{{0,1},"test"}, {{1,2,3}, "haha"}},2}}))
     (100);
 }
 
