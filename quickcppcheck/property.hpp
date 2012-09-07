@@ -1,210 +1,253 @@
-#ifndef _QCPPC_PROPERTY_H
-#define _QCPPC_PROPERTY_H
+#ifndef QCPPC_PROPERTY_H_
+#define QCPPC_PROPERTY_H_
 
 #include <iostream>
 #include <functional>
 #include <tuple>
 
-#include "arbitrary.hpp"
+#include "utils.hpp"
+#include "generator.hpp"
 #include "printer.hpp"
+#include "classifier.hpp"
 
 #define QCPP_STRINGIFY(x) #x
 #define QCPP_TOSTRING(x) QCPP_STRINGIFY(x)
 #define QCPP_AT __FILE__ ":" QCPP_TOSTRING(__LINE__)
 #define PROP QCPP_AT ":"
 
-namespace QuickCppCheck {
-    namespace Detail {
+namespace qcppc {
 
-template<std::size_t N>
-struct apply_func {
-    template<typename F, typename... Types, typename... Args>
-    static typename F::result_type
-            apply(F & f,
-                    std::tuple<Types...> & data,
-                    Args & ... args)
-    {
-        return apply_func<N-1>::apply(f, data, std::get<N-1>(data), args...);
-    }
-};
+using namespace utils;
+using detail::operator<<;
 
-template<>
-struct apply_func<0> {
-    template<typename F, typename... Types, typename... Args>
-    static typename F::result_type
-            apply(F & f,
-                    std::tuple<Types...> & data,
-                    Args & ... args)
-    {
-        return f(args...);
-    }
-};
+#ifdef HAS_COLOR
+static detail::ColoredString MAKE_RED = detail::ColoredString(detail::RED_COLOR);
+static detail::ColoredString MAKE_GREEN = detail::ColoredString(detail::GREEN_COLOR);
+static detail::ColoredString MAKE_YELLOW = detail::ColoredString(detail::YELLOW_COLOR);
+#else
+# define MAKE_RED(X) (X)
+# define MAKE_GREEN(X) (X)
+# define MAKE_YELLOW(X) (X)
+#endif
 
-template<std::size_t N>
-struct apply_func_individually {
-    template<typename... Types>
-    static void apply(std::tuple<Arbitrary<Types>...> & arbs,
-                      std::tuple<Types...> & data)
-    {
-        std::get<N-1>(data) = std::get<N-1>(arbs)();
-        apply_func_individually<N-1>::apply(arbs, data);
-    }
-};
-
-template<>
-struct apply_func_individually<0> {
-    template<typename... Types>
-    static void apply(std::tuple<Arbitrary<Types>...> & arbs,
-                      std::tuple<Types...> & data)
-    {}
-};
-
-template<size_t POS, typename T, typename...Args>
-struct get_type_at
-{
-    typedef typename get_type_at<POS - 1, Args...>::type type;
-};
-
-template<typename T, typename...Args>
-struct get_type_at<0, T, Args...>
-{
-    typedef typename std::decay<T>::type type;
-};
-
-} //namespace Detail
-
-static Detail::ColoredString RED = Detail::ColoredString(Detail::RED_COLOR);
-static Detail::ColoredString GREEN = Detail::ColoredString(Detail::GREEN_COLOR);
-static Detail::ColoredString YELLOW = Detail::ColoredString(Detail::YELLOW_COLOR);
-
+// An object of class Property contains the execution environment of a property.
+// That is, the property function itself and the data generators and constraints
+// on these data.
 template<typename... Args>
 class Property
 {
 private:
+    // The data to supply to property function.
     std::tuple<typename std::decay<Args>::type...> data;
-    std::tuple<Arbitrary<typename std::decay<Args>::type>...> arbs;
+
+    // Generators for data. Each generator provides a value of type T,
+    // where T is the type of the corresponding position in member data.
+    std::tuple<Generator<typename std::decay<Args>::type>...> generators;
 
     typedef std::function<bool(Args&...)> FunType;
     typedef std::function<bool(Args&...)> AcceptorType;
+    typedef typename Classifier<Args...>::classifier_type ClassifierType;
 
-    FunType fun;
+    // The property function.
+    FunType prop_fun;
+
+    // The acceptor function.
     AcceptorType acceptor;
+
+    Classifier<typename std::decay<Args>::type...> classifier;
+
+    // Description of the property.
     std::string name;
+
+    // Output verbosity level.
     int verbose;
 
-    static const unsigned int MAX_TESTS = 1000;
-    static const unsigned int MAX_FAILS = 1000;
+    // Max number of tests to run, if user does not specify.
+    static constexpr unsigned int MAX_TESTS = 1000;
 
-    static bool initialized;
+    // The number of discarded tests before giving up.
+    static constexpr float DISCARDED_RATIO = 0.5;
+
+    void print_classifier_result() {
+        if (classifier) {
+            classifier.print_results();
+        }
+    }
 
 public:
-    Property(const FunType & fun, const std::string & name = std::string("<unnamed>"), int verbose = 1):
-        fun(fun), acceptor(NULL), name(name), verbose(verbose)
+    // Constructs a Property object around the function prop_fun.
+    //
+    // Arguments:
+    //
+    // prop_fun: can be of any type of callable object as long as
+    //  its return type is bool.
+    //
+    // name: a string describing the property.
+    //
+    // verbose: the verbosity level of the output. It can take the following values:
+    //  0: no output
+    //  1: (default) print only the name of the property and the result of the test.
+    //  2: print also all the generated test cases.
+    Property(const FunType & prop_fun, const std::string & name =
+            std::string("<unnamed>"), int verbose = 1):
+        prop_fun(prop_fun), acceptor(nullptr), classifier(nullptr),
+        name(name), verbose(verbose)
     {}
 
-    void operator()(unsigned int ntests = MAX_TESTS, unsigned int nfails = MAX_FAILS)
+    // Executes the tests until we reach ntests successful tests
+    // or the test fails or we reach discarded_ratio * ntests discarded tests.
+    bool operator()(unsigned int ntests = MAX_TESTS,
+            float discarded_ratio = DISCARDED_RATIO)
     {
         bool ok = true;
-        unsigned int fails = 0;
+        unsigned int discarded = 0;
+        unsigned int max_discarded = discarded_ratio * ntests;
 
         if (verbose > 1) {
-            std::cout<<std::endl<<"[--------start test--------]";
+            std::cout<<"[--------start test--------]"<<std::endl;
         }
         if (verbose > 0) {
-            std::cout<<std::endl;
-            std::cout<<"Property: "<<YELLOW(name)<<std::endl;
+            std::cout<<"Property: "<<MAKE_YELLOW(name)<<std::endl;
         }
 
         for (unsigned int i = 1; i <= ntests; ++i) {
-            Detail::apply_func_individually<sizeof...(Args)>::apply(arbs, data);
+            apply_func_individually<sizeof...(Args)>::apply(generators, data);
 
             if (acceptor) {
-                while (!Detail::apply_func<sizeof...(Args)>::apply(acceptor, data)) {
-                    if (++fails == nfails) {
+                while (!apply_func<sizeof...(Args)>::apply(acceptor, data)) {
+                    if (++discarded == max_discarded) {
                         if (verbose > 0) {
-                            std::cout<<RED("Arguments exhausted")<<" after "
-                                <<fails<<" fails."<<std::endl;
-                            return;
+                            std::cout<<MAKE_RED("!!! Arguments exhausted")<<" after "
+                                <<i<<" tests and "
+                                <<discarded<<" discarded inputs."<<std::endl;
+                            print_classifier_result();
+                            std::cout<<std::endl;
+                            return false;
                         }
                     }
-                    Detail::apply_func_individually<sizeof...(Args)>::apply(arbs, data);
+                    apply_func_individually<sizeof...(Args)>::apply(generators, data);
                 }
             }
 
-            if (!Detail::apply_func<sizeof...(Args)>::apply(fun, data)) {
-                if (verbose > 0) {
-                    std::cout<<RED("Failed.")<<" Falsifiable after "<<i<<" tests."<<std::endl;
-                    if (verbose > 1) {
-                        std::cout<<i<<": ";
-                    }
-                    print_tuple(data);
-                }
-                ok = false;
-                break;
+            if (classifier) {
+                classifier.classify(data);
             }
             if (verbose > 1) {
                 std::cout<<i<<": ";
-                print_tuple(data);
+                std::cout<<data;
+                std::cout.flush();
+            }
+            if (!apply_func<sizeof...(Args)>::apply(prop_fun, data)) {
+                if (verbose > 0) {
+                    std::cout<<MAKE_RED("*** Falsifiable,")<<" after "<<i<<" tests."<<std::endl;
+                    if (verbose > 1) {
+                        std::cout<<i<<": ";
+                    }
+                    std::cout<<data;
+                    print_classifier_result();
+                }
+                ok = false;
+                break;
             }
         }
 
         if (ok) {
             if (verbose > 0) {
-                std::cout<<GREEN("OK.")<<" Passed "<<ntests<<" tests."<<std::endl;
+                std::cout<<MAKE_GREEN("+++ OK,")<<" passed "<<ntests<<" tests."<<std::endl;
+                print_classifier_result();
             }
         }
         if (verbose > 1) {
             std::cout<<"[--------end test------]"<<std::endl;
         }
+        if (verbose > 0) {
+            std::cout<<std::endl;
+        }
+        return ok;
     }
 
-    template<size_t POS, typename T>
-    Property<Args...> & Rnd(T l, T h)
-    {
-        typedef typename Detail::get_type_at<POS, Args...>::type ValType;
-        std::get<POS>(arbs) = Arbitrary<ValType, T>(l, h);
-        return *this;
-    }
-
-    template<size_t POS, typename T>
-    Property<Args...> & Rnd(const T &t)
-    {
-        typedef typename Detail::get_type_at<POS, Args...>::type ValType;
-        std::get<POS>(arbs) = Arbitrary<ValType>(t);
-        return *this;
-    }
-
+    // Sets the function fun as the generator for the argument at posistion POS.
     template<size_t POS, typename ValType =
-                typename Detail::get_type_at<POS, Args...>::type>
+                typename get_type_at<POS, Args...>::type,
+            typename T = std::function<ValType()>>
+    Property<Args...> & Rnd(const T & fun)
+    {
+        std::get<POS>(generators) = Generator<ValType>(fun);
+        return *this;
+    }
+
+    // Creates an Arbitrary generator with the given parameters
+    // and assigns it to argument at position POS.
+    template<size_t POS, typename...Params, typename Enable =
+            typename std::enable_if<(sizeof...(Params) > 1)>::type>
+    Property<Args...> & Rnd(Params...params)
+    {
+        typedef typename get_type_at<POS, Args...>::type ValType;
+        std::get<POS>(generators) = Arbitrary<ValType>(params...);
+        return *this;
+    }
+
+    // Creates a Fixed generator with the given value and assigns it
+    // to argument position POS.
+    template<size_t POS, typename ValType =
+                typename get_type_at<POS, Args...>::type>
     Property<Args...> & Fix(const ValType &v)
     {
-        std::get<POS>(arbs) = Fixed<ValType>(v);
+        std::get<POS>(generators) = Fixed<ValType>(v);
         return *this;
     }
 
+    // Creates an OneOf generator and assigns it to argument position POS.
     template<size_t POS, typename ValType =
-                typename Detail::get_type_at<POS, Args...>::type>
+                typename get_type_at<POS, Args...>::type>
     Property<Args...> & One(const std::vector<ValType> &v)
     {
-        std::get<POS>(arbs) = OneOf<ValType>(v);
+        std::get<POS>(generators) = OneOf<ValType>(v);
         return *this;
     }
 
+    // Creates a Freq generator and assigns it to argument position POS.
     template<size_t POS, typename ValType =
-                typename Detail::get_type_at<POS, Args...>::type>
+                typename get_type_at<POS, Args...>::type>
     Property<Args...> & Frq(const std::map<ValType, double> &v)
     {
-        std::get<POS>(arbs) = Freq<ValType>(v);
+        std::get<POS>(generators) = Freq<ValType>(v);
         return *this;
     }
 
-    Property<Args...> & operator|(const AcceptorType & acceptor)
+    // Sets the acceptor function.
+    Property<Args...> & If(const AcceptorType & acceptor)
     {
         this->acceptor = acceptor;
         return *this;
     }
+
+    // Sets the classifier function. It should have type
+    // std::string (Args...)
+    Property<Args...> & Classify(const ClassifierType & classifier_fun)
+    {
+        classifier = Classifier<typename std::decay<Args>::type...>(classifier_fun);
+        return *this;
+    }
+
 };
 
-} // namespace QuickCppCheck
+// Helper function to create objects of Property class.
+// Extracts the types of the arguments of the property function
+// and uses them to instantiate template class Property.
+template<typename T, typename...Params,
+    typename Property = typename Unpack<
+            typename function_traits<T>::arg_types, Property
+        >::type>
+typename std::enable_if<std::is_same<
+        typename function_traits<T>::return_type, bool
+      >::value, Property
+    >::type
+property(const T & t, Params...params)
+{
+    return Property(t, params...);
+}
 
-#endif // _QCPPC_PROPERTY_H
+} // namespace qcppc
+
+#endif // QCPPC_PROPERTY_H_
