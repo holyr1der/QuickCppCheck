@@ -1,37 +1,103 @@
 ##ABOUT
 
-QuickCppCheck is a C++ testing framework much inspired by Haskell's  
-quickcheck. Currently it's more a proof of concept rather than a 
-working testing library.
+QuickCppCheck is a C++ testing tool trying to imitate Haskell's
+quickcheck. While there are other attempts to do so, like QuickCheck++
+and CppQuickCheck, they provide an OOP interface which just doesn't feel
+'right'. QuickCppCheck, on the other hand, provides a functional interface
+where properties are defined as functions that take arbitrary number of arguments
+and return bool, much like quickcheck.
 
-##Usage
+Moreover, it allows the customization of the generators for each argument
+separately, either by using the provided generators for the primitive types,
+or by providing a function that generates random values of the appropriate type.
 
-Each property that is to be tested is expressed as a callable (lambda, function 
-pointer, function object) that accepts an arbitrary number of arguments and 
-returns a bool. 
+Note that QuickCppCheck makes heavy use of new C++11 features and is incompatible
+with C++03.
 
-Let's say we have a function that divides its argument by 2.
+###Properties
 
-    int div2(int n){
-        return n / 2;
-    }
+Properties are defined as function objects, which can be function pointers,
+classes with an operator(), lambdas, pretty much anything that is callable
+in C++.
 
-The above function should have obviously the following property
-(this should return always true)
+For each property function, an object of type Property has to be created, which
+then can be customized and run. This can be done with the help of the function
+qcppc::property e.g.
 
-    bool prop_f(int n) {
-        return 2 * f(n) == n;
-    }
+    qcppc::property(prop_fun, "Test property")(1000);
 
-But, apparently, it will fail as soon as it gets an odd number!
-The following code will run prop_f on a number of arbitrary inputs and will
-eventually catch the bug!
+This will create a Property object and run 1000 tests.
 
-    Property<int>(prop_f) ();
+###Arbitrary class
 
-##More Advanced Example 
+Class template Arbitrary<T> may be specialized for user defined types,
+in order for QuickCppCheck to be able to automatically generate random
+instances of that type. The specialization should provide at least
+a constructor with no arguments and a call operator with type T operator()().
 
-###Euler problem 9
+Given that Arbitrary<T> is specialized for type MyType, then the following
+can be used:
+
+    qcppc::property([](MyType t) {/*...*/ })()
+
+Additional constructors may be defined and later used with the help of
+the template function Rnd of class Property, e.g.
+
+    qcppc::property([](MyType t1, MyType t2) { /* ... */ })
+        .Rnd<0>(/* ... args for Arbitrary<MyType> constructor... */)
+        .Rnd<1>(/* ... args for Arbitrary<MyType> constructor... */)
+        ();
+
+Rnd<N> simply forwards its arguments to the constructor of Arbitrary<T>,
+where T is the type of the argument at position N, and sets Arbitrary<T>(args...)
+as the generator for the argument at position N.
+
+Specializing class template Arbitrary<T> is not the only way to create generators
+for user defined types. It can also be done with a plain function which
+accepts no arguments and returns an object of that type, e.g.
+
+    MyType my_random();
+
+    qcppc::property(...)
+        .Rnd<0>(my_random);
+
+###Other generators
+
+Other generators my be defined with the following functions:
+
+    qcppc::Property::Fix<N>(const T &)
+    qcppc::Property::One<N>(const std::vector<T> &)
+    qcppc::Property::Frq<N>(const std::map<T, double> &)
+
+where T is the type of the argument at position N.
+
+A parameter of the property function can be fixed to a specific value with
+the template function Fix:
+
+    // y will be always 0
+    qcppc::property([](int x, int y){...})
+        .Fix<1>(0)
+        ();
+
+
+A parameter can take its value from a predefined set of values with the template
+function One:
+
+    //x will get randomly a value from the given list
+    qcppc::property([](int x){...})
+        .One<0>({1,3,42})
+        ();
+
+
+Template function Frq offers the weighted version of One:
+
+    //x will get false with twice the probability of getting true
+    qcppc::property([](bool x){...})
+        .Frq<0>({{false,2},{true,1}})
+
+###Examples
+
+Project Euler problem 9
 
     A Pythagorean triplet is a set of three natural numbers, a  b  c, for which,
     a2 + b2 = c2
@@ -41,37 +107,23 @@ eventually catch the bug!
     There exists exactly one Pythagorean triplet for which a + b + c = 1000.
     Find the product abc.
 
----
-Arbitrary data generators can be overridden (independently for each argument of
-the property callable) by creating objects of type 
-
-    Arbitrary<T, I>
-
-where I is the position of the argument and T its type.
-eg.
-
-    Property<int>(prop_f)
-    <= Arbitrary<int, 0>([] () -> int { return rand() % 10;}) ();
-
-will create and arbitrary data generator that provides ints and attach it to 
-0th argument of prop_f. Arbitrary can accept any callable as long as it has the 
-correct signature (that should be T()).
-
-
+We define a property that fails on a Pythagorean triplet and then we try
+to fail that property with QuickCppCheck.
 
     //Solving Euler problem 9!
     //will, hopefully, fail with the solution!
-    (Property<int, int, int, int>([](int a, int b, int c, int d){
-                                          return (a*a + b*b != c*c) ||
-                                                  (a + b + c != d);
-                                            },
-                                        "Euler problem 9!!")
+    property([] (int a, int b, int c, int d)
+                    {
+                        return (a*a + b*b != c*c) ||
+                            (a + b + c != d);
+                    },
+        "Euler problem 9!!")
         //a, b and c can't be bigger than 500
-        <= Arbitrary<int, 0>([]() {return rand() % 500;})
-        <= Arbitrary<int, 1>([]() {return rand() % 500;})
-        <= Arbitrary<int, 2>([]() {return rand() % 500;})
+        .Rnd<0>(1, 500)
+        .Rnd<1>(1, 500)
+        .Rnd<2>(1, 500)
         //d must be always 1000
-        <= Arbitrary<int, 3>([]() {return 1000;}))
-        
-        //run 1000000 times and hopefully will hit the solution
-        (1000000);
+        .Fix<3>(1000)
+        //run and hopefully will hit the solution
+    (100000000);
+
