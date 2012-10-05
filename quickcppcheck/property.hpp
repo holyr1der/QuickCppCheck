@@ -183,7 +183,7 @@ public:
     Property<Args...> & Rnd(Params...params)
     {
         typedef typename get_type_at<POS, Args...>::type ValType;
-        std::get<POS>(generators) = Arbitrary<ValType>(params...);
+        std::get<POS>(generators) = Arbitrary<ValType>(std::forward<Params>(params)...);
         return *this;
     }
 
@@ -245,7 +245,7 @@ typename std::enable_if<std::is_same<
     >::type
 property(const T & t, Params...params)
 {
-    return Property(t, params...);
+    return Property(t, std::forward<Params>(params)...);
 }
 
 } // namespace qcppc
