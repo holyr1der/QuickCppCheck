@@ -126,6 +126,16 @@ struct Unpack<std::tuple<Args...>, Target>
     typedef Target<Args...> type;
 };
 
+template<typename T>
+struct is_printable
+{
+    template<typename U> static char test(char(*)[sizeof(*((std::ostream*)0)<<
+                *(U*)0)]);
+    template<typename U> static int test(...);
+
+    enum { value = sizeof(test<T>(0)) == 1 };
+};
+
 } // namespace utils
 } // namespace qcppc
 

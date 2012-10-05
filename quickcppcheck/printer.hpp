@@ -18,6 +18,26 @@ std::ostream& operator<<(std::ostream& out, const std::vector<T> & v)
     return out;
 }
 
+template<typename T>
+typename std::enable_if<
+        utils::is_printable<T>::value,
+        std::ostream&
+    >::type
+print_helper(std::ostream &out, const T& t)
+{
+    return out<<t;
+}
+
+template<typename T>
+typename std::enable_if<
+        !utils::is_printable<T>::value,
+        std::ostream&
+    >::type
+print_helper(std::ostream &out, const T& t)
+{
+    return out<<"???";
+}
+
 template<size_t N>
 struct tuple_printer_impl {
     template<typename Fun, typename... Types>
@@ -40,8 +60,7 @@ struct tuple_printer {
     tuple_printer(std::ostream &out, std::string delimiter):out(out),delimiter(delimiter){}
     template<typename T>
     void operator()(const T & t, size_t n) const {
-        using detail::operator<<;
-        out<<t; if (n) out<<delimiter;
+        print_helper(out,t); if (n) out<<delimiter;
     }
 };
 
